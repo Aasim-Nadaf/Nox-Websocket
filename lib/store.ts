@@ -55,28 +55,81 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
+interface ChatSummary {
+  user: User;
+  lastMessage: Message | null;
+}
+
 interface ChatState {
   messages: Message[];
+  chatsList: ChatSummary[];
+  typingUsers: Record<string, boolean>;
   setMessages: (messages: Message[]) => void;
+  setChatsList: (chatsList: ChatSummary[]) => void;
   addMessage: (message: Message) => void;
+  setTyping: (userId: string, isTyping: boolean) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => {
   // Register the message handler with wsManager to avoid import cycle
-  wsManager.onMessageHandler = (msg: Message) => {
-    set((state) => {
-      if (state.messages.some((m) => m.id === msg.id)) return state;
-      return { messages: [...state.messages, msg] };
-    });
+  wsManager.onMessageHandler = (msg: any) => {
+    if (msg.type === 'typing') {
+      set((state) => ({
+        typingUsers: { ...state.typingUsers, [msg.senderId]: true },
+      }));
+    } else if (msg.type === 'stop_typing') {
+      set((state) => ({
+        typingUsers: { ...state.typingUsers, [msg.senderId]: false },
+      }));
+    } else {
+      // Treat as new_message (backwards compatibility)
+      const newMsg = msg.type === 'new_message' ? msg.message : msg;
+      if (!newMsg || !newMsg.id) return;
+
+      set((state) => {
+        if (state.messages.some((m) => m.id === newMsg.id)) return state;
+
+        // Also update the chatsList to reflect the new lastMessage
+        const newChatsList = [...state.chatsList];
+        const otherUserId =
+          newMsg.senderId === useAuthStore.getState().user?.id
+            ? newMsg.receiverId
+            : newMsg.senderId;
+
+        const chatIndex = newChatsList.findIndex((chat) => chat.user.id === otherUserId);
+
+        if (chatIndex >= 0) {
+          // Update existing chat
+          const chat = newChatsList[chatIndex];
+          newChatsList.splice(chatIndex, 1);
+          newChatsList.unshift({ ...chat, lastMessage: newMsg });
+        } else {
+          // We could fetch chats here or just ignore if user doesn't exist in list yet,
+          // but typically it should exist. (In a full app we fetch the missing user).
+        }
+
+        return {
+          messages: [...state.messages, newMsg],
+          chatsList: newChatsList,
+        };
+      });
+    }
   };
 
   return {
     messages: [],
+    chatsList: [],
+    typingUsers: {},
     setMessages: (messages) => set({ messages }),
+    setChatsList: (chatsList) => set({ chatsList }),
     addMessage: (message) =>
       set((state) => {
         if (state.messages.some((m) => m.id === message.id)) return state;
         return { messages: [...state.messages, message] };
       }),
+    setTyping: (userId, isTyping) =>
+      set((state) => ({
+        typingUsers: { ...state.typingUsers, [userId]: isTyping },
+      })),
   };
 });

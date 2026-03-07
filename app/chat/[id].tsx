@@ -7,6 +7,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useAuthStore, useChatStore } from '@/lib/store';
@@ -19,9 +20,14 @@ export default function ChatScreen() {
   const { id: otherUserId, username } = useLocalSearchParams<{ id: string; username: string }>();
   const [content, setContent] = useState('');
   const { user: currentUser } = useAuthStore();
-  const { messages, setMessages } = useChatStore();
+  const messages = useChatStore((state) => state.messages);
+  const setMessages = useChatStore((state) => state.setMessages);
+  const typingUsers = useChatStore((state) => state.typingUsers);
+  const isTyping = otherUserId ? typingUsers[otherUserId as string] : false;
+
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -39,18 +45,39 @@ export default function ChatScreen() {
     }
   };
 
+  const handleTextChange = (text: string) => {
+    setContent(text);
+
+    if (!currentUser || !otherUserId) return;
+
+    wsManager.sendTypingStatus(otherUserId as string, true);
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      wsManager.sendTypingStatus(otherUserId as string, false);
+    }, 1500); // 1.5 seconds after last keystroke
+  };
+
   const handleSend = () => {
     if (!content.trim() || !currentUser || !otherUserId) return;
 
-    wsManager.sendMessage(otherUserId, content.trim());
+    wsManager.sendMessage(otherUserId as string, content.trim());
+    wsManager.sendTypingStatus(otherUserId as string, false);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
     setContent('');
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
   const renderMessage = ({ item, index }: { item: any; index: number }) => {
     const isMine = item.senderId === currentUser?.id;
-    // Mock time for design
-    const time = '10:44 AM';
+    const time = new Date(item.createdAt).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
     return (
       <View className={`mb-6 ${isMine ? 'items-end' : 'items-start'}`}>
@@ -88,13 +115,20 @@ export default function ChatScreen() {
             <ChevronLeft size={28} color="#000" className="dark:color-white" />
           </TouchableOpacity>
           <View className="mr-3 h-11 w-11 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
-            <User size={22} color="#ea580c" />
+            <Image
+              source={{ uri: `https://i.pravatar.cc/150?u=${username}` }}
+              className="h-full w-full rounded-full"
+              resizeMode="cover"
+            />
           </View>
           <View>
             <Text className="text-lg font-bold text-zinc-900 dark:text-white">
               {username || 'User'}
             </Text>
-            <Text className="text-xs font-medium text-zinc-400 dark:text-zinc-500">Online</Text>
+            <Text
+              className={`text-xs font-medium ${isTyping ? 'font-bold text-indigo-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
+              {isTyping ? 'Typing...' : 'Online'}
+            </Text>
           </View>
         </View>
         <TouchableOpacity className="p-2">
@@ -135,7 +169,7 @@ export default function ChatScreen() {
               </TouchableOpacity>
               <TextInput
                 value={content}
-                onChangeText={setContent}
+                onChangeText={handleTextChange}
                 placeholder="Message"
                 placeholderTextColor="#a1a1aa"
                 multiline
