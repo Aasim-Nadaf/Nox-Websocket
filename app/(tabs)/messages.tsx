@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  TextInput,
+  Image,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import api from '@/lib/api';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useChatStore } from '@/lib/store';
 import { User, Bell, Search, Plus } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,48 +20,69 @@ interface UserModel {
 }
 
 export default function MessagesScreen() {
-  const [users, setUsers] = useState<UserModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const { user: currentUser } = useAuthStore();
+  const { chatsList, setChatsList } = useChatStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (currentUser) {
+      fetchChats();
+    }
+  }, [currentUser]);
 
-  const fetchUsers = async () => {
+  const fetchChats = async () => {
     try {
-      const { data } = await api.get('/users');
-      // Filter out current user from chat list
-      setUsers(data.filter((u: UserModel) => u.id !== currentUser?.id));
+      const { data } = await api.get(`/chats/${currentUser?.id}`);
+      setChatsList(data);
     } catch (error) {
-      console.error('Failed to fetch users', error);
+      console.error('Failed to fetch chats', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredUsers = users.filter((u) =>
-    u.username.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredChats = chatsList.filter((chat) =>
+    chat.user.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const renderItem = ({ item, index }: { item: UserModel; index: number }) => {
-    // Generate some mock variations based on index to match design
+  const formatTime = (dateString?: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const isToday =
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+
+    if (isToday) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
+
+  const renderItem = ({ item, index }: { item: any; index: number }) => {
+    // Generate some mock variations for online/unread based on index for design context
     const isOnline = index % 3 === 0;
-    const unreadCount = index === 0 ? 2 : 0;
-    const timeText = index === 0 ? '10:45 AM' : index === 1 ? '9:30 AM' : 'Yesterday';
-    const lastMessage = index === 0 ? "Let's catch up later! I have some ne..." : 'Tap to chat...';
+    const unreadCount = 0; // Keeping 0 to be realistic since we don't have read receipts yet
+    const timeText = formatTime(item.lastMessage?.createdAt);
+    const lastMessage = item.lastMessage ? item.lastMessage.content : 'Tap to chat...';
 
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={() => router.push(`/chat/${item.id}?username=${item.username}`)}
+        onPress={() => router.push(`/chat/${item.user.id}?username=${item.user.username}`)}
         className="mb-6 flex-row items-center pl-1 pr-4">
         {/* Avatar with Online Badge */}
         <View className="relative mr-4 h-14 w-14 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30">
-          <User size={28} color="#4f46e5" className="opacity-80" />
+          <Image
+            source={{ uri: `https://i.pravatar.cc/150?u=${item.user.username}` }}
+            className="h-full w-full rounded-full"
+            resizeMode="cover"
+          />
           {isOnline && (
             <View className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white bg-green-500 dark:border-zinc-950" />
           )}
@@ -62,7 +91,7 @@ export default function MessagesScreen() {
         {/* Name and Last Message */}
         <View className="flex-1">
           <Text className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-            {item.username}
+            {item.user.username}
           </Text>
           <Text className="mt-1 text-sm text-zinc-500 dark:text-zinc-400" numberOfLines={1}>
             {lastMessage}
@@ -122,8 +151,8 @@ export default function MessagesScreen() {
 
       {/* List */}
       <FlatList
-        data={filteredUsers}
-        keyExtractor={(item) => item.id}
+        data={filteredChats}
+        keyExtractor={(item) => item.user.id}
         renderItem={renderItem}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}

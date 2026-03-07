@@ -31,6 +31,49 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+app.get('/api/chats/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Fetch all other users
+    const otherUsers = await prisma.user.findMany({
+      where: { id: { not: userId } },
+      select: { id: true, username: true },
+    });
+
+    const chatsList = await Promise.all(
+      otherUsers.map(async (user) => {
+        // Find the most recent message between currentUser and this user
+        const lastMessage = await prisma.message.findFirst({
+          where: {
+            OR: [
+              { senderId: userId, receiverId: user.id },
+              { senderId: user.id, receiverId: userId },
+            ],
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        return {
+          user,
+          lastMessage,
+        };
+      })
+    );
+
+    // Sort chats by most recent message, and push users with no messages to the bottom
+    chatsList.sort((a, b) => {
+      const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
+      const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    res.json(chatsList);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch chats' });
+  }
+});
+
 app.get('/api/messages/:userId/:otherUserId', async (req, res) => {
   try {
     const { userId, otherUserId } = req.params;
@@ -99,6 +142,18 @@ wss.on('connection', (ws, req) => {
         const senderClient = clients.get(senderId);
         if (senderClient && senderClient.ws.readyState === WebSocket.OPEN) {
           senderClient.ws.send(messagePayload);
+        }
+      } else if (parsedData.type === 'typing' || parsedData.type === 'stop_typing') {
+        const { senderId, receiverId } = parsedData;
+        const typingPayload = JSON.stringify({
+          type: parsedData.type,
+          senderId,
+        });
+
+        // Forward type status to receiver if online
+        const receiverClient = clients.get(receiverId);
+        if (receiverClient && receiverClient.ws.readyState === WebSocket.OPEN) {
+          receiverClient.ws.send(typingPayload);
         }
       }
     } catch (e) {

@@ -59,6 +59,18 @@ class WebSocketManager {
     }
   }
 
+  sendTypingStatus(receiverId: string, isTyping: boolean) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && this.userId) {
+      this.ws.send(
+        JSON.stringify({
+          type: isTyping ? 'typing' : 'stop_typing',
+          senderId: this.userId,
+          receiverId,
+        })
+      );
+    }
+  }
+
   disconnect() {
     this.userId = null;
     if (this.ws) {
