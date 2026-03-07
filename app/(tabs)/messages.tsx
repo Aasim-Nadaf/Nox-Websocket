@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import api from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
-import { User } from 'lucide-react-native';
+import { User, Bell, Search, Plus } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface UserModel {
   id: string;
@@ -13,8 +14,10 @@ interface UserModel {
 export default function MessagesScreen() {
   const [users, setUsers] = useState<UserModel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user: currentUser } = useAuthStore();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     fetchUsers();
@@ -32,20 +35,56 @@ export default function MessagesScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: UserModel }) => (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={() => router.push(`/chat/${item.id}?username=${item.username}`)}
-      className="flex-row items-center border-b border-zinc-100 p-4 active:bg-zinc-50 dark:border-zinc-800/50 dark:active:bg-zinc-900">
-      <View className="mr-4 h-14 w-14 items-center justify-center rounded-full border border-indigo-200 bg-indigo-100 dark:border-indigo-800/50 dark:bg-indigo-900/30">
-        <User size={28} color="#4f46e5" className="opacity-80" />
-      </View>
-      <View className="flex-1">
-        <Text className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{item.username}</Text>
-        <Text className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">Tap to chat</Text>
-      </View>
-    </TouchableOpacity>
+  const filteredUsers = users.filter((u) =>
+    u.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const renderItem = ({ item, index }: { item: UserModel; index: number }) => {
+    // Generate some mock variations based on index to match design
+    const isOnline = index % 3 === 0;
+    const unreadCount = index === 0 ? 2 : 0;
+    const timeText = index === 0 ? '10:45 AM' : index === 1 ? '9:30 AM' : 'Yesterday';
+    const lastMessage = index === 0 ? "Let's catch up later! I have some ne..." : 'Tap to chat...';
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => router.push(`/chat/${item.id}?username=${item.username}`)}
+        className="mb-6 flex-row items-center pl-1 pr-4">
+        {/* Avatar with Online Badge */}
+        <View className="relative mr-4 h-14 w-14 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30">
+          <User size={28} color="#4f46e5" className="opacity-80" />
+          {isOnline && (
+            <View className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white bg-green-500 dark:border-zinc-950" />
+          )}
+        </View>
+
+        {/* Name and Last Message */}
+        <View className="flex-1">
+          <Text className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            {item.username}
+          </Text>
+          <Text className="mt-1 text-sm text-zinc-500 dark:text-zinc-400" numberOfLines={1}>
+            {lastMessage}
+          </Text>
+        </View>
+
+        {/* Time and Unread Badge */}
+        <View className="items-end pl-2">
+          <Text className="text-xs text-zinc-400 dark:text-zinc-500">{timeText}</Text>
+          {unreadCount > 0 ? (
+            <View className="mt-1 h-5 min-w-[20px] items-center justify-center rounded-full bg-black px-1 dark:bg-white">
+              <Text className="text-[10px] font-bold text-white dark:text-black">
+                {unreadCount}
+              </Text>
+            </View>
+          ) : (
+            <View className="mt-1 h-5" />
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -56,18 +95,50 @@ export default function MessagesScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white dark:bg-zinc-950">
+    <View className="flex-1 bg-white pt-4 dark:bg-zinc-950" style={{ paddingTop: insets.top + 16 }}>
+      {/* Header */}
+      <View className="mb-6 flex-row items-center justify-between px-6">
+        <Text className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
+          Messages
+        </Text>
+        <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-900">
+          <Bell size={20} color="#09090b" className="dark:color-white" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Bar */}
+      <View className="mb-8 px-6">
+        <View className="h-12 flex-row items-center rounded-full border border-zinc-100 bg-zinc-50 px-4 dark:border-zinc-800 dark:bg-zinc-900">
+          <Search size={20} color="#a1a1aa" />
+          <TextInput
+            placeholder="Search chats"
+            placeholderTextColor="#a1a1aa"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            className="ml-3 flex-1 text-base text-zinc-900 dark:text-white"
+          />
+        </View>
+      </View>
+
+      {/* List */}
       <FlatList
-        data={users}
+        data={filteredUsers}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center pt-24">
-            <Text className="text-lg text-zinc-500 dark:text-zinc-400">No other users found.</Text>
+            <Text className="text-lg text-zinc-500 dark:text-zinc-400">No chats found.</Text>
           </View>
         }
       />
+
+      {/* <TouchableOpacity
+        className="absolute bottom-[110px] right-6 h-14 w-14 items-center justify-center rounded-full bg-black shadow-lg shadow-black/20 dark:bg-white"
+        activeOpacity={0.8}>
+        <Plus size={24} color="white" className="dark:color-black" />
+      </TouchableOpacity> */}
     </View>
   );
 }
