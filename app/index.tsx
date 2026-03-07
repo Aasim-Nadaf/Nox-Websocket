@@ -1,113 +1,92 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useAuthStore } from '@/lib/store';
-import api from '@/lib/api';
-import { MotiView } from 'moti';
+import React from 'react';
+import { View, Text, TouchableOpacity, ImageBackground, Dimensions } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MessageSquare } from 'lucide-react-native';
+import { useColorScheme } from 'nativewind';
 
-export default function AuthScreen() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+const { width } = Dimensions.get('window');
+const circleSize = Math.min(width * 0.7, 280);
 
-  const { setAuth } = useAuthStore();
-
-  const handleAuth = async () => {
-    if (!username || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
-    setError('');
-    setLoading(true);
-
-    try {
-      const endpoint = isLogin ? '/auth/login' : '/auth/register';
-      const { data } = await api.post(endpoint, { username, password });
-      await setAuth(data.user, data.token);
-    } catch (err: any) {
-      console.log('Auth error:', JSON.stringify(err.response?.data));
-      setError(err.response?.data?.error || 'Authentication failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+export default function WelcomeScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   return (
-    <View className="flex-1 items-center justify-center bg-zinc-50 p-6 dark:bg-zinc-950">
-      <MotiView
-        from={{ opacity: 0, translateY: 20 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: 'spring', damping: 15 }}
-        className="w-full max-w-sm rounded-3xl border border-zinc-100 bg-white p-8 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
-        <Text className="mb-2 mt-4 text-center text-3xl font-extrabold text-zinc-900 dark:text-zinc-50">
-          {isLogin ? 'Welcome Back' : 'Create Account'}
-        </Text>
-        <Text className="mb-8 text-center text-zinc-500 dark:text-zinc-400">
-          {isLogin ? 'Sign in to continue chatting' : 'Sign up to get started'}
-        </Text>
+    <View
+      className="flex-1 bg-[#f6f7f8] dark:bg-[#101922]"
+      style={{ paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 16) }}>
+      <View className="flex-1 px-8 pb-4">
+        {/* Top App Bar / Logo Section */}
+        <View className="items-center justify-center pb-2 pt-6">
+          <View className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black/10 dark:border-white/10">
+            <MessageSquare color={isDark ? 'white' : 'black'} size={24} />
+          </View>
+        </View>
 
+        {/* Hero Section with Circle Image */}
+        <View className="mt-8 items-center justify-center py-6">
+          <View className="relative">
+            <View
+              style={{ width: circleSize, height: circleSize, borderRadius: circleSize / 2 }}
+              className="overflow-hidden border-8 border-white bg-slate-200 shadow-xl dark:border-slate-900 dark:bg-slate-800">
+              <ImageBackground
+                source={{
+                  uri: 'https://images.unsplash.com/photo-1543807535-eceef0bc6599?q=80&w=600&auto=format&fit=crop',
+                }}
+                style={{ flex: 1 }}
+                imageStyle={{ borderRadius: circleSize / 2, opacity: 0.9 }}
+                className="grayscale" // Using nativewind for basic grayscale effect visually if possible, or just standard photo styling
+              />
+            </View>
+
+            {/* Subtle Decorative Element */}
+            <View className="absolute -bottom-2 -right-2 flex h-14 w-14 items-center justify-center rounded-full bg-[#111418] shadow-lg dark:bg-white">
+              <MessageSquare
+                color={isDark ? 'black' : 'white'}
+                size={22}
+                fill={isDark ? 'black' : 'white'}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Content Section */}
+        <View className="flex-1 justify-center py-8">
+          <Text className="text-center text-[42px] font-extrabold leading-[1.1] tracking-tight text-slate-900 dark:text-slate-100">
+            Beyond{'\n'}words.
+          </Text>
+          <Text className="mx-auto mt-4 max-w-[280px] text-center text-lg font-medium leading-relaxed text-slate-500 dark:text-slate-400">
+            A sophisticated way to connect with those who matter most.
+          </Text>
+        </View>
+
+        {/* Action Section */}
         <View className="space-y-4">
-          <View>
-            <Text className="mb-1 ml-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-              Username
-            </Text>
-            <TextInput
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-              placeholder="Enter your username"
-              placeholderTextColor="#9ca3af"
-              className="mx-auto h-14 w-full rounded-2xl border border-transparent bg-zinc-100 px-5 font-medium text-zinc-900 focus:border-indigo-500 dark:bg-zinc-800 dark:text-white dark:focus:border-indigo-400"
-            />
-          </View>
-
-          <View className="mt-4">
-            <Text className="mb-1 ml-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-              Password
-            </Text>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              placeholder="Enter your password"
-              placeholderTextColor="#9ca3af"
-              className="mx-auto h-14 w-full rounded-2xl border border-transparent bg-zinc-100 px-5 font-medium text-zinc-900 focus:border-indigo-500 dark:bg-zinc-800 dark:text-white dark:focus:border-indigo-400"
-            />
-          </View>
-
-          {error ? (
-            <Text className="mt-2 text-center font-medium text-red-500">{error}</Text>
-          ) : null}
-
           <TouchableOpacity
-            onPress={handleAuth}
-            disabled={loading}
             activeOpacity={0.8}
-            className="mt-6 h-14 w-full items-center justify-center rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-600/30 dark:bg-indigo-500">
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text className="text-lg font-bold tracking-wide text-white">
-                {isLogin ? 'Sign In' : 'Sign Up'}
-              </Text>
-            )}
+            onPress={() => router.push({ pathname: '/auth', params: { isLogin: 'false' } })}
+            className="flex h-16 w-full items-center justify-center rounded-full bg-[#111418] shadow-lg active:scale-95 dark:bg-slate-100">
+            <Text className="text-lg font-bold tracking-wide text-white dark:text-[#111418]">
+              Get Started
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setIsLogin(!isLogin)}
-            className="mt-6 items-center"
-            activeOpacity={0.6}>
-            <Text className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-              {isLogin ? "Don't have an account? " : 'Already have an account? '}
-              <Text className="font-bold text-indigo-600 dark:text-indigo-400">
-                {isLogin ? 'Sign Up' : 'Sign In'}
+            activeOpacity={0.6}
+            onPress={() => router.push({ pathname: '/auth', params: { isLogin: 'true' } })}
+            className="flex items-center justify-center py-3">
+            <Text className="text-base font-semibold leading-normal text-slate-400 dark:text-slate-500">
+              Already have an account?{' '}
+              <Text className="text-[#111418] underline underline-offset-4 dark:text-slate-200">
+                Sign In
               </Text>
             </Text>
           </TouchableOpacity>
         </View>
-      </MotiView>
+      </View>
     </View>
   );
 }
