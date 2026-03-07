@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, Switch, Image } from 'react-native';
 import { useAuthStore } from '@/lib/store';
 import { useColorScheme } from 'nativewind';
 import {
@@ -44,7 +44,11 @@ export default function ProfileScreen() {
         <View className="h-[140px] w-[140px] items-center justify-center rounded-full border-[1.5px] border-zinc-900 p-2 dark:border-zinc-300">
           <View className="h-full w-full items-center justify-center overflow-hidden rounded-full bg-orange-100 dark:bg-orange-900/30">
             {/* Using a placeholder User icon since we don't have images */}
-            <User size={64} color="#ea580c" />
+            <Image
+              source={{ uri: `https://i.pravatar.cc/150?u=${user?.username}` }}
+              className="h-full w-full rounded-full"
+              resizeMode="cover"
+            />
           </View>
         </View>
         <Text className="mt-5 text-[28px] font-bold tracking-tight text-zinc-900 dark:text-white">
@@ -59,7 +63,7 @@ export default function ProfileScreen() {
           activeOpacity={0.8}
           className="min-w-[140px] flex-row items-center justify-center rounded-full bg-black px-6 py-3.5 dark:bg-white">
           <MessageSquare size={18} color={isDark ? '#000' : '#fff'} className="mr-2" />
-          <Text className="text-base font-semibold text-white dark:text-black">Message</Text>
+          <Text className="ml-2 text-base font-semibold text-white dark:text-black">Message</Text>
         </TouchableOpacity>
 
         <TouchableOpacity

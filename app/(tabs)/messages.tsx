@@ -130,7 +130,7 @@ export default function MessagesScreen() {
         <Text className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
           Messages
         </Text>
-        <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-900">
+        <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-100">
           <Bell size={20} color="#09090b" className="dark:color-white" />
         </TouchableOpacity>
       </View>
