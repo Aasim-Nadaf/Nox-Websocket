@@ -1,13 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  TextInput,
-  Image,
-} from 'react-native';
+import { View, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { Text } from '@/components/ui/text';
+import { Input } from '@/components/ui/input';
 import { useRouter } from 'expo-router';
 import api from '@/lib/api';
 import { useAuthStore, useChatStore } from '@/lib/store';
@@ -139,12 +133,12 @@ export default function MessagesScreen() {
       <View className="mb-8 px-6">
         <View className="h-12 flex-row items-center rounded-full border border-zinc-100 bg-zinc-50 px-4 dark:border-zinc-800 dark:bg-zinc-900">
           <Search size={20} color="#a1a1aa" />
-          <TextInput
+          <Input
             placeholder="Search chats"
             placeholderTextColor="#a1a1aa"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            className="ml-3 flex-1 text-base text-zinc-900 dark:text-white"
+            className="ml-3 flex-1 border-0 bg-transparent px-0 text-base text-zinc-900 shadow-none dark:bg-transparent dark:text-white"
           />
         </View>
       </View>

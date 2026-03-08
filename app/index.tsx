@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ImageBackground, Dimensions } from 'react-native';
+import { View, TouchableOpacity, ImageBackground, Dimensions } from 'react-native';
+import { Text } from '@/components/ui/text';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MessageSquare } from 'lucide-react-native';
@@ -16,7 +17,7 @@ export default function WelcomeScreen() {
 
   return (
     <View
-      className="flex-1 bg-[#f6f7f8] dark:bg-[#101922]"
+      className="flex-1 bg-white dark:bg-zinc-950"
       style={{ paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 16) }}>
       <View className="flex-1 px-8 pb-4">
         {/* Top App Bar / Logo Section */}

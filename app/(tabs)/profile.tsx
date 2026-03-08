@@ -1,7 +1,20 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Switch, Image } from 'react-native';
+import { View, TouchableOpacity, Image } from 'react-native';
+import { Text } from '@/components/ui/text';
+import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { useAuthStore } from '@/lib/store';
 import { useColorScheme } from 'nativewind';
+import Toast from 'react-native-toast-message';
 import {
   User,
   LogOut,
@@ -95,13 +108,7 @@ export default function ProfileScreen() {
               Dark Mode
             </Text>
           </View>
-          <Switch
-            value={isDark}
-            onValueChange={toggleTheme}
-            trackColor={{ false: '#e4e4e7', true: '#000000' }}
-            thumbColor={'#ffffff'}
-            ios_backgroundColor="#e4e4e7"
-          />
+          <Switch checked={isDark} onCheckedChange={toggleTheme} />
         </View>
 
         {/* Notifications */}
@@ -117,18 +124,48 @@ export default function ProfileScreen() {
           <ChevronRight size={20} color="#a1a1aa" />
         </TouchableOpacity>
 
-        {/* Sign Out (Styled as Block Contact in design) */}
-        <TouchableOpacity
-          onPress={logout}
-          activeOpacity={0.7}
-          className="flex-row items-center justify-between">
-          <View className="flex-row items-center">
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/30">
-              <LogOut size={22} color="#ef4444" />
-            </View>
-            <Text className="ml-4 text-[17px] font-semibold text-red-500">Sign Out</Text>
-          </View>
-        </TouchableOpacity>
+        <Dialog>
+          <DialogTrigger asChild>
+            <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between">
+              <View className="flex-row items-center">
+                <View className="h-12 w-12 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/30">
+                  <LogOut size={22} color="#ef4444" />
+                </View>
+                <Text className="ml-4 text-[17px] font-semibold text-red-500">Sign Out</Text>
+              </View>
+            </TouchableOpacity>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Sign Out</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to sign out? You will need to log in again to access your
+                messages.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-4 flex-row justify-end gap-3 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+              <DialogClose asChild>
+                <TouchableOpacity className="rounded-xl bg-zinc-100 px-5 py-3 dark:bg-zinc-800">
+                  <Text className="font-semibold text-zinc-900 dark:text-zinc-100">Cancel</Text>
+                </TouchableOpacity>
+              </DialogClose>
+              <DialogClose asChild>
+                <TouchableOpacity
+                  onPress={() => {
+                    logout();
+                    Toast.show({
+                      type: 'success',
+                      text1: 'Signed Out',
+                      text2: 'You have been successfully signed out.',
+                    });
+                  }}
+                  className="rounded-xl bg-red-500 px-5 py-3">
+                  <Text className="font-semibold text-white">Sign Out</Text>
+                </TouchableOpacity>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </View>
     </View>
   );

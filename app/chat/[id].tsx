@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   FlatList,
   KeyboardAvoidingView,
   Platform,
   Image,
 } from 'react-native';
+import { Text } from '@/components/ui/text';
+import { Textarea } from '@/components/ui/textarea';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useAuthStore, useChatStore } from '@/lib/store';
 import { wsManager } from '@/lib/websocket';
@@ -138,7 +138,8 @@ export default function ChatScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 44 : 20}>
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -167,13 +168,13 @@ export default function ChatScreen() {
               <TouchableOpacity className="mr-3">
                 <Plus size={24} color="#000" className="dark:color-white" />
               </TouchableOpacity>
-              <TextInput
+              <Textarea
                 value={content}
                 onChangeText={handleTextChange}
                 placeholder="Message"
                 placeholderTextColor="#a1a1aa"
                 multiline
-                className="max-h-32 flex-1 py-3 pt-3.5 text-base text-zinc-900 dark:text-white"
+                className="max-h-32 flex-1 border-0 bg-transparent px-0 py-3 pt-3.5 text-base text-zinc-900 shadow-none dark:bg-transparent dark:text-white"
               />
             </View>
 
