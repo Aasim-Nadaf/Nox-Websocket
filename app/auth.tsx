@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
+import { Text } from '@/components/ui/text';
+import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/lib/store';
 import api from '@/lib/api';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 
 export default function AuthScreen() {
   const { isLogin: isLoginParam } = useLocalSearchParams<{ isLogin?: string }>();
@@ -31,7 +32,6 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const router = useRouter();
 
@@ -43,19 +43,35 @@ export default function AuthScreen() {
 
   const handleAuth = async () => {
     if (!username || !password) {
-      setError('Please fill in all fields');
+      Toast.show({
+        type: 'error',
+        text1: 'Missing Fields',
+        text2: 'Please fill in all fields',
+      });
       return;
     }
-    setError('');
     setLoading(true);
 
     try {
       const endpoint = isLogin ? '/auth/login' : '/auth/register';
       const { data } = await api.post(endpoint, { username, password });
-      await setAuth(data.user, data.token);
+
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: isLogin ? 'Successfully logged in!' : 'Successfully created account!',
+      });
+
+      setTimeout(async () => {
+        await setAuth(data.user, data.token);
+      }, 1000);
     } catch (err: any) {
       console.log('Auth error:', JSON.stringify(err.response?.data));
-      setError(err.response?.data?.error || 'Authentication failed');
+      Toast.show({
+        type: 'error',
+        text1: 'Authentication Failed',
+        text2: err.response?.data?.error || 'Something went wrong',
+      });
     } finally {
       setLoading(false);
     }
@@ -91,7 +107,7 @@ export default function AuthScreen() {
               Username
             </Text>
             <View className="relative">
-              <TextInput
+              <Input
                 value={username}
                 onChangeText={setUsername}
                 autoCapitalize="none"
@@ -107,7 +123,7 @@ export default function AuthScreen() {
               Password
             </Text>
             <View className="relative">
-              <TextInput
+              <Input
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -128,8 +144,6 @@ export default function AuthScreen() {
               </TouchableOpacity>
             </View>
           </View>
-
-          {error ? <Text className="text-center font-medium text-red-500">{error}</Text> : null}
         </View>
 
         <View className="mt-12">
@@ -155,7 +169,6 @@ export default function AuthScreen() {
             activeOpacity={0.6}
             onPress={() => {
               setIsLogin(false);
-              setError('');
             }}>
             <Text className="text-lg font-extrabold text-black dark:text-white">
               Create Account
@@ -202,7 +215,7 @@ export default function AuthScreen() {
               Username
             </Text>
             <View className="relative">
-              <TextInput
+              <Input
                 value={username}
                 onChangeText={setUsername}
                 autoCapitalize="none"
@@ -218,7 +231,7 @@ export default function AuthScreen() {
               Password
             </Text>
             <View className="relative">
-              <TextInput
+              <Input
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -239,8 +252,6 @@ export default function AuthScreen() {
               </TouchableOpacity>
             </View>
           </View>
-
-          {error ? <Text className="text-center font-medium text-red-500">{error}</Text> : null}
         </View>
 
         <View className="mt-12">
@@ -266,7 +277,6 @@ export default function AuthScreen() {
             activeOpacity={0.6}
             onPress={() => {
               setIsLogin(true);
-              setError('');
             }}>
             <Text className="text-lg font-extrabold text-black dark:text-white">Log In</Text>
           </TouchableOpacity>
@@ -286,7 +296,8 @@ export default function AuthScreen() {
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-white dark:bg-zinc-950"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       style={{ paddingTop: Math.max(insets.top, 16) }}>
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}

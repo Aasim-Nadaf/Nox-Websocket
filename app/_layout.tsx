@@ -1,5 +1,12 @@
 import '@/global.css';
 
+import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
+
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false, // Reanimated runs in strict mode by default
+});
+
 import { NAV_THEME } from '@/lib/theme';
 import { ThemeProvider } from '@react-navigation/native';
 import { PortalHost } from '@rn-primitives/portal';
@@ -13,6 +20,8 @@ export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
+
+import Toast from 'react-native-toast-message';
 
 export default function RootLayout() {
   const { colorScheme } = useColorScheme();
@@ -47,6 +56,7 @@ export default function RootLayout() {
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }} />
       <PortalHost />
+      <Toast />
     </ThemeProvider>
   );
 }
