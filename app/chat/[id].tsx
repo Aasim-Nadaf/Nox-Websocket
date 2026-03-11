@@ -148,6 +148,10 @@ export default function ChatScreen() {
           contentContainerStyle={{ padding: 16, paddingTop: 24, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+          initialNumToRender={15}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          removeClippedSubviews={Platform.OS === 'android'}
           ListHeaderComponent={
             <View className="mb-6 items-center">
               <View className="rounded-full bg-zinc-100 px-4 py-1.5 dark:bg-zinc-900">

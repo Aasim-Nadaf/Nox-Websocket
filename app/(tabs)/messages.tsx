@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, FlatList, TouchableOpacity, ActivityIndicator, Image, InteractionManager } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'expo-router';
@@ -23,7 +23,9 @@ export default function MessagesScreen() {
 
   useEffect(() => {
     if (currentUser) {
-      fetchChats();
+      InteractionManager.runAfterInteractions(() => {
+        fetchChats();
+      });
     }
   }, [currentUser]);
 
@@ -150,6 +152,10 @@ export default function MessagesScreen() {
         renderItem={renderItem}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={10}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews={true}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center pt-24">
             <Text className="text-lg text-zinc-500 dark:text-zinc-400">No chats found.</Text>
