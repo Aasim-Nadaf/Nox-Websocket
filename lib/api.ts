@@ -1,11 +1,12 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-import { Platform } from 'react-native';
+const debuggerHost = Constants.expoConfig?.hostUri;
+const localhost = debuggerHost?.split(':')[0] || 'localhost';
 
-export const API_URL =
-  Platform.OS === 'android' ? 'http://192.168.1.235:5000/api' : 'http://192.168.1.235:5000/api';
-// If testing on a real device, change this to your computer's local network IP
+export const API_URL = `http://${localhost}:5000/api`;
+export const WS_URL = `ws://${localhost}:5000`;
 
 const api = axios.create({
   baseURL: API_URL,

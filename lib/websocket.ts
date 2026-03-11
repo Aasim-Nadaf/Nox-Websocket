@@ -1,9 +1,9 @@
-import { Platform } from 'react-native';
+import { WS_URL } from './api';
 
 class WebSocketManager {
   private ws: WebSocket | null = null;
   private userId: string | null = null;
-  private url = Platform.OS === 'android' ? 'ws://192.168.1.235:5000' : 'ws://192.168.1.235:5000';
+  private url = WS_URL;
   public onMessageHandler: ((message: any) => void) | null = null;
 
   connect(userId: string) {
