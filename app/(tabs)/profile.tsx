@@ -135,20 +135,14 @@ export default function ProfileScreen() {
               </View>
             </TouchableOpacity>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Sign Out</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to sign out? You will need to log in again to access your
-                messages.
+          <DialogContent className="w-[340px] rounded-[32px] p-6 sm:max-w-[340px] bg-white dark:bg-zinc-950 border border-zinc-200/50 dark:border-zinc-800/50 shadow-xl shadow-black/10">
+            <DialogHeader className="items-center gap-1 sm:text-center mt-2">
+              <DialogTitle className="text-[22px] font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Sign Out</DialogTitle>
+              <DialogDescription className="text-center text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400 mt-2 px-2">
+                Are you sure you want to sign out of your account?
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="mt-4 flex-row justify-end gap-3 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-              <DialogClose asChild>
-                <TouchableOpacity className="rounded-xl bg-zinc-100 px-5 py-3 dark:bg-zinc-800">
-                  <Text className="font-semibold text-zinc-900 dark:text-zinc-100">Cancel</Text>
-                </TouchableOpacity>
-              </DialogClose>
+            <DialogFooter className="mt-8 flex-col gap-3 sm:flex-col">
               <DialogClose asChild>
                 <TouchableOpacity
                   onPress={() => {
@@ -159,8 +153,13 @@ export default function ProfileScreen() {
                       text2: 'You have been successfully signed out.',
                     });
                   }}
-                  className="rounded-xl bg-red-500 px-5 py-3">
-                  <Text className="font-semibold text-white">Sign Out</Text>
+                  className="w-full h-14 items-center justify-center rounded-full bg-red-500 dark:bg-red-600 shadow-sm shadow-red-500/20 active:bg-red-600">
+                  <Text className="text-[16px] font-bold text-white">Sign Out</Text>
+                </TouchableOpacity>
+              </DialogClose>
+              <DialogClose asChild>
+                <TouchableOpacity className="w-full h-14 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-900 active:bg-zinc-200 dark:active:bg-zinc-800">
+                  <Text className="text-[16px] font-bold text-zinc-900 dark:text-zinc-100">Cancel</Text>
                 </TouchableOpacity>
               </DialogClose>
             </DialogFooter>
