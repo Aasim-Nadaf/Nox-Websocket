@@ -22,6 +22,7 @@ export {
 } from 'expo-router';
 
 import Toast from 'react-native-toast-message';
+import { toastConfig } from '@/components/ui/toast-config';
 
 export default function RootLayout() {
   const { colorScheme } = useColorScheme();
@@ -56,7 +57,7 @@ export default function RootLayout() {
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }} />
       <PortalHost />
-      <Toast />
+      <Toast config={toastConfig} />
     </ThemeProvider>
   );
 }
