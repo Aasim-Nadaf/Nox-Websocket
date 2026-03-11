@@ -1,10 +1,11 @@
 import { MessageSquare, User } from 'lucide-react-native';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
 import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 
 export function CustomTabBar({ state, navigation }: any) {
-  const activeColor = '#ffffff';
-  const inactiveColor = '#71717a';
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const icons: any = {
     messages: MessageSquare,
@@ -35,16 +36,11 @@ export function CustomTabBar({ state, navigation }: any) {
               onPress={onPress}
               style={[styles.tab, isFocused && styles.activeTab]}
               activeOpacity={0.7}>
-              <Icon color={isFocused ? activeColor : inactiveColor} size={24} />
-              {/* {isFocused && (
-                <Animated.Text
-                  entering={FadeIn.duration(200)}
-                  exiting={FadeOut.duration(200)}
-                  layout={Layout.springify().damping(15)}
-                  style={styles.tabText}>
-                  {route.name === 'messages' ? 'Messages' : 'Profile'}
-                </Animated.Text>
-              )} */}
+              <Icon
+                color={isFocused ? '#ffffff' : isDark ? '#52525b' : '#a1a1aa'} // zinc-600 dark, zinc-400 light
+                size={28}
+                strokeWidth={isFocused ? 2.5 : 2}
+              />
             </TouchableOpacity>
           );
         })}
@@ -56,41 +52,29 @@ export function CustomTabBar({ state, navigation }: any) {
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 32,
     left: 0,
     right: 0,
-    alignItems: 'center', // ← this centers the pill
+    alignItems: 'center',
   },
   container: {
     flexDirection: 'row',
-    backgroundColor: '#000000',
-    borderRadius: 35,
-    height: 65,
+    backgroundColor: 'rgba(0,0,0,0.85)', // Slight transparency for a glass effect
+    borderRadius: 40,
     paddingHorizontal: 8,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 10,
-    gap: 4,
-  },
-  tab: {
-    flexDirection: 'row',
+    paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 30,
+    gap: 8,
+  },
+  tab: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    borderRadius: 32,
   },
   activeTab: {
-    backgroundColor: '#000000',
-  },
-  tabText: {
-    color: '#ffffff',
-    marginLeft: 8,
-    fontWeight: '600',
-    fontSize: 14,
+    backgroundColor: 'rgba(255,255,255,0.15)', // Subtle highlight for active tab
   },
 });
