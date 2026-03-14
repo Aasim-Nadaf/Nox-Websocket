@@ -7,7 +7,7 @@ const localhost = debuggerHost?.split(':')[0] || 'localhost';
 
 // 1. FOR LOCAL DEV: Uses your computer's IP (works in Expo Go)
 // 2. FOR PRODUCTION/APK: Replace the string below with your ngrok or server URL
-const PRODUCTION_URL = 'https://285a-103-93-240-183.ngrok-free.app';
+const PRODUCTION_URL = 'https://nox-websocket.onrender.com';
 
 export const API_URL = __DEV__ ? `http://${localhost}:5000/api` : `${PRODUCTION_URL}/api`;
 
