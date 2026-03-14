@@ -5,8 +5,15 @@ import Constants from 'expo-constants';
 const debuggerHost = Constants.expoConfig?.hostUri;
 const localhost = debuggerHost?.split(':')[0] || 'localhost';
 
-export const API_URL = `http://${localhost}:5000/api`;
-export const WS_URL = `ws://${localhost}:5000`;
+// 1. FOR LOCAL DEV: Uses your computer's IP (works in Expo Go)
+// 2. FOR PRODUCTION/APK: Replace the string below with your ngrok or server URL
+const PRODUCTION_URL = 'https://285a-103-93-240-183.ngrok-free.app';
+
+export const API_URL = __DEV__ ? `http://${localhost}:5000/api` : `${PRODUCTION_URL}/api`;
+
+export const WS_URL = __DEV__
+  ? `ws://${localhost}:5000`
+  : `${PRODUCTION_URL.replace('https://', 'wss://')}`;
 
 const api = axios.create({
   baseURL: API_URL,

@@ -12,7 +12,13 @@ const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
-export const prisma = new PrismaClient();
+export const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+});
 
 app.use(cors());
 app.use(express.json());
@@ -166,7 +172,7 @@ wss.on('connection', (ws, req) => {
   });
 });
 
-const PORT = 5000;
+const PORT = Number(process.env.PORT) || 5000;
 
 async function main() {
   try {
