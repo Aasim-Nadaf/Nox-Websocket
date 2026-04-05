@@ -20,9 +20,13 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  hasSeenOnboarding: boolean;
+  hasShownSplash: boolean;
   setAuth: (user: User, token: string) => Promise<void>;
   logout: () => Promise<void>;
   loadAuth: () => Promise<void>;
+  setHasSeenOnboarding: (value: boolean) => Promise<void>;
+  setHasShownSplash: (value: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -30,6 +34,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   isAuthenticated: false,
   isLoading: true,
+  hasSeenOnboarding: false,
+  hasShownSplash: false,
   setAuth: async (user, token) => {
     await AsyncStorage.setItem('auth_token', token);
     await AsyncStorage.setItem('auth_user', JSON.stringify(user));
@@ -45,6 +51,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   loadAuth: async () => {
     const token = await AsyncStorage.getItem('auth_token');
     const userStr = await AsyncStorage.getItem('auth_user');
+    const onboardingStr = await AsyncStorage.getItem('has_seen_onboarding');
+    
+    set({ 
+      hasSeenOnboarding: onboardingStr === 'true',
+    });
+
     if (token && userStr) {
       const user = JSON.parse(userStr) as unknown as User;
       set({ user, token, isAuthenticated: true, isLoading: false });
@@ -52,6 +64,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     } else {
       set({ isLoading: false });
     }
+  },
+  setHasSeenOnboarding: async (value: boolean) => {
+    await AsyncStorage.setItem('has_seen_onboarding', value ? 'true' : 'false');
+    set({ hasSeenOnboarding: value });
+  },
+  setHasShownSplash: (value: boolean) => {
+    set({ hasShownSplash: value });
   },
 }));
 

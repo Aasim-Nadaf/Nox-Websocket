@@ -15,18 +15,39 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/lib/store';
+import Toast from 'react-native-toast-message';
+import { toastConfig } from '@/components/ui/toast-config';
+import * as SplashScreen from 'expo-splash-screen';
+import {
+  useFonts,
+  Newsreader_400Regular,
+  Newsreader_600SemiBold,
+} from '@expo-google-fonts/newsreader';
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_700Bold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
 
-import Toast from 'react-native-toast-message';
-import { toastConfig } from '@/components/ui/toast-config';
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { colorScheme } = useColorScheme();
-  const { isLoading, isAuthenticated, loadAuth } = useAuthStore();
+  const { isLoading: isAuthLoading, isAuthenticated, loadAuth, hasShownSplash } = useAuthStore();
+  const [fontsLoaded, fontError] = useFonts({
+    Newsreader_400Regular,
+    Newsreader_600SemiBold,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_700Bold,
+  });
+
   const segments = useSegments();
   const router = useRouter();
 
@@ -35,21 +56,32 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  useEffect(() => {
+    if (isAuthLoading || !fontsLoaded) return;
 
     const inAuthGroup = segments[0] === '(tabs)' || segments[0] === 'chat';
+    const isSplashOrOnboarding = segments[0] === 'splash' || segments[0] === 'onboarding';
 
-    if (isAuthenticated && !inAuthGroup) {
-      // Redirect to main app
-      router.replace('/(tabs)/messages');
-    } else if (!isAuthenticated && inAuthGroup) {
-      // Redirect to login
-      router.replace('/');
+    if (isAuthenticated) {
+      if (!inAuthGroup) {
+        router.replace('/(tabs)/messages');
+      }
+    } else {
+      if (!hasShownSplash && !isSplashOrOnboarding) {
+        router.replace('/splash');
+      } else if (hasShownSplash && !isSplashOrOnboarding && inAuthGroup) {
+        router.replace('/');
+      }
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isAuthLoading, fontsLoaded, segments, hasShownSplash]);
 
-  if (isLoading) {
-    return null; // Or a splash screen
+  if (isAuthLoading || !fontsLoaded) {
+    return null;
   }
 
   return (

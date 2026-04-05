@@ -13,8 +13,9 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useAuthStore, useChatStore } from '@/lib/store';
 import { wsManager } from '@/lib/websocket';
 import api from '@/lib/api';
-import { Send, ChevronLeft, MoreVertical, Plus, Mic, User, CheckCheck } from 'lucide-react-native';
+import { Send, ChevronLeft, MoreVertical, Plus, Mic, CheckCheck } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useColorScheme } from 'nativewind';
 
 export default function ChatScreen() {
   const { id: otherUserId, username } = useLocalSearchParams<{ id: string; username: string }>();
@@ -29,6 +30,17 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insets = useSafeAreaInsets();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  // ── Chalk & Carbon tokens ──────────────────────────────────
+  const pageBg = isDark ? '#111111' : '#faf8f5';
+  const surface = isDark ? '#1c1c1c' : '#ffffff';
+  const border = isDark ? '#2a2a2a' : '#e2ddd7';
+  const inputBg = isDark ? '#1c1c1c' : '#f4f1ec';
+  const textPrimary = isDark ? '#f5f2ed' : '#1a1a1a';
+  const textMuted = isDark ? '#4a4a4a' : '#b0aba3';
+  const textSec = isDark ? '#8a8a8a' : '#6b6b6b';
 
   useEffect(() => {
     fetchHistory();
@@ -47,32 +59,24 @@ export default function ChatScreen() {
 
   const handleTextChange = (text: string) => {
     setContent(text);
-
     if (!currentUser || !otherUserId) return;
-
     wsManager.sendTypingStatus(otherUserId as string, true);
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       wsManager.sendTypingStatus(otherUserId as string, false);
-    }, 1500); // 1.5 seconds after last keystroke
+    }, 1500);
   };
 
   const handleSend = () => {
     if (!content.trim() || !currentUser || !otherUserId) return;
-
     wsManager.sendMessage(otherUserId as string, content.trim());
     wsManager.sendTypingStatus(otherUserId as string, false);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
     setContent('');
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
-  const renderMessage = ({ item, index }: { item: any; index: number }) => {
+  const renderMessage = ({ item }: { item: any }) => {
     const isMine = item.senderId === currentUser?.id;
     const time = new Date(item.createdAt).toLocaleTimeString([], {
       hour: '2-digit',
@@ -80,62 +84,150 @@ export default function ChatScreen() {
     });
 
     return (
-      <View className={`mb-6 ${isMine ? 'items-end' : 'items-start'}`}>
+      <View
+        style={{
+          marginBottom: 20,
+          alignItems: isMine ? 'flex-end' : 'flex-start',
+        }}>
+        {/* Bubble */}
         <View
-          style={{ maxWidth: '80%' }}
-          className={`px-5 py-4 shadow-sm shadow-black/5 ${
-            isMine
-              ? 'rounded-[24px] rounded-br-sm bg-black dark:bg-white'
-              : 'rounded-[24px] rounded-tl-sm border border-zinc-100 bg-white dark:border-zinc-800 dark:bg-zinc-900'
-          }`}>
+          style={{
+            maxWidth: '75%',
+            backgroundColor: isMine ? '#1a1a1a' : surface,
+            borderRadius: 18,
+            borderBottomRightRadius: isMine ? 4 : 18,
+            borderBottomLeftRadius: isMine ? 18 : 4,
+            borderWidth: isMine ? 0 : 1,
+            borderColor: border,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+          }}>
           <Text
-            className={`text-[16px] leading-6 ${isMine ? 'text-white dark:text-black' : 'text-zinc-900 dark:text-zinc-100'}`}>
+            style={{
+              fontSize: 15,
+              lineHeight: 22,
+              color: isMine ? '#f5f2ed' : textPrimary,
+              fontWeight: '400',
+            }}>
             {item.content}
           </Text>
         </View>
+
+        {/* Timestamp + read receipt */}
         <View
-          className={`mt-1 flex-row items-center px-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
-          <Text className="text-[11px] text-zinc-400 dark:text-zinc-500">{time}</Text>
-          {isMine && <CheckCheck size={14} color="#a1a1aa" className="ml-1" />}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginTop: 4,
+            paddingHorizontal: 4,
+          }}>
+          <Text style={{ fontSize: 11, color: textMuted }}>{time}</Text>
+          {isMine && <CheckCheck size={13} color={textMuted} style={{ marginLeft: 4 }} />}
         </View>
       </View>
     );
   };
 
+  // Typing indicator bubble
+  const TypingBubble = () => (
+    <View style={{ alignItems: 'flex-start', marginBottom: 20 }}>
+      <View
+        style={{
+          backgroundColor: surface,
+          borderRadius: 18,
+          borderBottomLeftRadius: 4,
+          borderWidth: 1,
+          borderColor: border,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          flexDirection: 'row',
+          gap: 5,
+          alignItems: 'center',
+        }}>
+        {[0, 1, 2].map((i) => (
+          <View
+            key={i}
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: 4,
+              backgroundColor: textMuted,
+            }}
+          />
+        ))}
+      </View>
+    </View>
+  );
+
   return (
-    <View className="flex-1 bg-[#F9F9F9] dark:bg-zinc-950">
+    <View style={{ flex: 1, backgroundColor: pageBg }}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Custom Header */}
+      {/* ── Header ── */}
       <View
-        className="z-10 flex-row items-center justify-between border-b border-zinc-200/50 bg-[#F9F9F9] px-4 pb-4 dark:border-zinc-900/50 dark:bg-zinc-950"
-        style={{ paddingTop: insets.top || 44 }}>
-        <View className="flex-row items-center">
-          <TouchableOpacity onPress={() => router.back()} className="mr-3 p-1">
-            <ChevronLeft size={28} color="#000" className="dark:color-white" />
+        style={{
+          paddingTop: insets.top || 44,
+          paddingBottom: 14,
+          paddingHorizontal: 20,
+          backgroundColor: pageBg,
+          borderBottomWidth: 1,
+          borderBottomColor: border,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {/* Back */}
+          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 8, padding: 4 }}>
+            <ChevronLeft size={24} color={textPrimary} />
           </TouchableOpacity>
-          <View className="mr-3 h-11 w-11 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
+
+          {/* Avatar */}
+          <View
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 19,
+              marginRight: 10,
+              overflow: 'hidden',
+              backgroundColor: inputBg,
+            }}>
             <Image
               source={{ uri: `https://i.pravatar.cc/150?u=${username}` }}
-              className="h-full w-full rounded-full"
+              style={{ width: '100%', height: '100%' }}
               resizeMode="cover"
             />
           </View>
+
+          {/* Name + status */}
           <View>
-            <Text className="text-lg font-bold text-zinc-900 dark:text-white">
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: '600',
+                color: textPrimary,
+                letterSpacing: -0.2,
+              }}>
               {username || 'User'}
             </Text>
             <Text
-              className={`text-xs font-medium ${isTyping ? 'font-bold text-indigo-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
-              {isTyping ? 'Typing...' : 'Online'}
+              style={{
+                fontSize: 12,
+                color: isTyping ? textSec : textMuted,
+                fontWeight: isTyping ? '500' : '400',
+              }}>
+              {isTyping ? 'typing...' : 'online'}
             </Text>
           </View>
         </View>
-        <TouchableOpacity className="p-2">
-          <MoreVertical size={24} color="#000" className="dark:color-white" />
+
+        {/* Menu */}
+        <TouchableOpacity style={{ padding: 4 }}>
+          <MoreVertical size={22} color={textMuted} />
         </TouchableOpacity>
       </View>
 
+      {/* ── Messages + Input ── */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -145,7 +237,11 @@ export default function ChatScreen() {
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={renderMessage}
-          contentContainerStyle={{ padding: 16, paddingTop: 24, paddingBottom: 24 }}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: 24,
+            paddingBottom: 16,
+          }}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
           initialNumToRender={15}
@@ -153,46 +249,96 @@ export default function ChatScreen() {
           windowSize={10}
           removeClippedSubviews={Platform.OS === 'android'}
           ListHeaderComponent={
-            <View className="mb-6 items-center">
-              <View className="rounded-full bg-zinc-100 px-4 py-1.5 dark:bg-zinc-900">
-                <Text className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+            <View style={{ alignItems: 'center', marginBottom: 24 }}>
+              <View
+                style={{
+                  backgroundColor: inputBg,
+                  borderRadius: 100,
+                  paddingHorizontal: 14,
+                  paddingVertical: 5,
+                }}>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: textMuted,
+                    fontWeight: '500',
+                    letterSpacing: 0.6,
+                    textTransform: 'uppercase',
+                  }}>
                   Today
                 </Text>
               </View>
             </View>
           }
+          ListFooterComponent={isTyping ? <TypingBubble /> : null}
         />
 
-        {/* Input Bar */}
+        {/* ── Input bar ── */}
         <View
-          className="bg-[#F9F9F9] pt-2 dark:bg-zinc-950"
-          style={{ paddingBottom: Math.max(insets.bottom, 16) }}>
-          <View className="flex-row items-end px-4">
-            <View className="min-h-[52px] flex-1 flex-row items-center rounded-full bg-zinc-100 px-4 dark:bg-zinc-900">
-              <TouchableOpacity className="mr-3">
-                <Plus size={24} color="#000" className="dark:color-white" />
+          style={{
+            backgroundColor: pageBg,
+            borderTopWidth: 1,
+            borderTopColor: border,
+            paddingTop: 10,
+            paddingHorizontal: 20,
+            paddingBottom: Math.max(insets.bottom, 16),
+          }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
+            {/* Text input pill */}
+            <View
+              style={{
+                flex: 1,
+                minHeight: 48,
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: inputBg,
+                borderRadius: 24,
+                borderWidth: 1,
+                borderColor: border,
+                paddingHorizontal: 14,
+              }}>
+              <TouchableOpacity style={{ marginRight: 10 }}>
+                <Plus size={20} color={textMuted} />
               </TouchableOpacity>
               <Textarea
                 value={content}
                 onChangeText={handleTextChange}
-                placeholder="Message"
-                placeholderTextColor="#a1a1aa"
+                placeholder="Message…"
+                placeholderTextColor={textMuted}
                 multiline
-                className="max-h-32 flex-1 border-0 bg-transparent px-0 py-3 pt-3.5 text-base text-zinc-900 shadow-none dark:bg-transparent dark:text-white"
+                style={{
+                  flex: 1,
+                  maxHeight: 120,
+                  fontSize: 15,
+                  color: textPrimary,
+                  backgroundColor: 'transparent',
+                  paddingVertical: 12,
+                  paddingHorizontal: 0,
+                  borderWidth: 0,
+                  // @ts-ignore
+                  outline: 'none',
+                  shadowOpacity: 0,
+                }}
               />
             </View>
 
-            {content.trim() ? (
-              <TouchableOpacity
-                onPress={handleSend}
-                className="ml-3 h-[52px] w-[52px] items-center justify-center rounded-full bg-black shadow-sm dark:bg-white">
-                <Send size={20} color="white" className="ml-1 dark:color-black" />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity className="ml-3 h-[52px] w-[52px] items-center justify-center rounded-full bg-black shadow-sm dark:bg-white">
-                <Mic size={22} color="white" className="dark:color-black" />
-              </TouchableOpacity>
-            )}
+            {/* Send / Mic button */}
+            <TouchableOpacity
+              onPress={content.trim() ? handleSend : undefined}
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: '#1a1a1a',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              {content.trim() ? (
+                <Send size={18} color="#f5f2ed" style={{ marginLeft: 2 }} />
+              ) : (
+                <Mic size={19} color="#f5f2ed" />
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>

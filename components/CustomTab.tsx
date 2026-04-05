@@ -1,11 +1,12 @@
 import { MessageSquare, User } from 'lucide-react-native';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
-import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function CustomTabBar({ state, navigation }: any) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const icons: any = {
     messages: MessageSquare,
@@ -13,8 +14,12 @@ export function CustomTabBar({ state, navigation }: any) {
   };
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.container}>
+    <View
+      className="absolute left-0 right-0 items-center"
+      style={{ bottom: Math.max(insets.bottom, 30) }}>
+      <View
+        className="flex-row items-center justify-center gap-2 rounded-[40px] px-2 py-2"
+        style={{ backgroundColor: '#1a1a1a' }}>
         {state.routes.map((route: any, index: number) => {
           const isFocused = state.index === index;
           const Icon = icons[route.name];
@@ -34,12 +39,13 @@ export function CustomTabBar({ state, navigation }: any) {
             <TouchableOpacity
               key={route.key}
               onPress={onPress}
-              style={[styles.tab, isFocused && styles.activeTab]}
-              activeOpacity={0.7}>
+              activeOpacity={0.75}
+              className="items-center justify-center rounded-[32px] px-9 py-[14px]"
+              style={isFocused ? { backgroundColor: 'rgba(255,255,255,0.12)' } : undefined}>
               <Icon
-                color={isFocused ? '#ffffff' : isDark ? '#52525b' : '#a1a1aa'} // zinc-600 dark, zinc-400 light
-                size={28}
-                strokeWidth={isFocused ? 2.5 : 2}
+                size={22}
+                strokeWidth={isFocused ? 2.5 : 1.8}
+                color={isFocused ? '#f5f2ed' : 'rgba(245,242,237,0.35)'}
               />
             </TouchableOpacity>
           );
@@ -48,33 +54,3 @@ export function CustomTabBar({ state, navigation }: any) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    position: 'absolute',
-    bottom: 32,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  container: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(0,0,0,0.85)', // Slight transparency for a glass effect
-    borderRadius: 40,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  tab: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    borderRadius: 32,
-  },
-  activeTab: {
-    backgroundColor: 'rgba(255,255,255,0.15)', // Subtle highlight for active tab
-  },
-});
