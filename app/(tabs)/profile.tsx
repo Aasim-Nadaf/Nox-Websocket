@@ -93,7 +93,7 @@ export default function ProfileScreen() {
         {/* User Identity Section */}
         <View className="mt-12 items-center px-6">
           <View className="relative h-32 w-32 items-center justify-center rounded-full bg-secondary p-1">
-            <View className="h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-background">
+            <View className="h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-background ring-1 ring-foreground ring-offset-1">
               <Image
                 source={{ uri: `https://i.pravatar.cc/150?u=${user?.username}` }}
                 className="h-full w-full opacity-90 grayscale"
