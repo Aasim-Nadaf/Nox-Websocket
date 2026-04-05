@@ -39,33 +39,37 @@ export default function ProfileScreen() {
     setColorScheme(isDark ? 'light' : 'dark');
   };
 
-  const MenuItem = ({ icon: Icon, label, value, onPress, isDestructive }: any) => (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={onPress}
-      className="mb-6 flex-row items-center justify-between border-b border-border/10 pb-6">
-      <View className="flex-row items-center">
-        <View className="mr-5 h-10 w-10 items-center justify-center rounded-full bg-secondary/50">
-          <Icon
-            size={18}
-            color={isDestructive ? '#ef4444' : isDark ? '#fff' : '#000'}
-            strokeWidth={1.5}
-          />
-        </View>
-        <Text
-          className={`font-jakarta text-[17px] font-medium ${isDestructive ? 'text-red-500' : 'text-foreground'}`}>
-          {label}
-        </Text>
-      </View>
-      <View className="flex-row items-center">
-        {value && (
-          <Text className="mr-3 font-jakarta text-sm font-bold uppercase tracking-widest text-muted-foreground opacity-60">
-            {value}
+  const MenuItem = React.forwardRef(
+    ({ icon: Icon, label, value, onPress, isDestructive, ...props }: any, ref: any) => (
+      <TouchableOpacity
+        ref={ref}
+        activeOpacity={0.7}
+        onPress={onPress}
+        {...props}
+        className="mb-6 flex-row items-center justify-between border-b border-border/10 pb-6">
+        <View className="flex-row items-center">
+          <View className="mr-5 h-10 w-10 items-center justify-center rounded-full bg-secondary/50">
+            <Icon
+              size={18}
+              color={isDestructive ? '#ef4444' : isDark ? '#fff' : '#000'}
+              strokeWidth={1.5}
+            />
+          </View>
+          <Text
+            className={`font-jakarta text-[17px] font-medium ${isDestructive ? 'text-red-500' : 'text-foreground'}`}>
+            {label}
           </Text>
-        )}
-        <ChevronRight size={16} color={isDark ? '#444' : '#ccc'} strokeWidth={2} />
-      </View>
-    </TouchableOpacity>
+        </View>
+        <View className="flex-row items-center">
+          {value && (
+            <Text className="mr-3 font-jakarta text-sm font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+              {value}
+            </Text>
+          )}
+          <ChevronRight size={16} color={isDark ? '#444' : '#ccc'} strokeWidth={2} />
+        </View>
+      </TouchableOpacity>
+    )
   );
 
   return (
@@ -134,9 +138,7 @@ export default function ProfileScreen() {
           {/* Destructive Actions */}
           <Dialog>
             <DialogTrigger asChild>
-              <View className="mt-6">
-                <MenuItem icon={LogOut} label="Logout" isDestructive />
-              </View>
+              <MenuItem icon={LogOut} label="Logout" isDestructive />
             </DialogTrigger>
             <DialogContent className="w-[340px] rounded-[32px] border border-border/20 bg-background p-6 shadow-2xl">
               <DialogHeader className="mt-2 items-center gap-1">

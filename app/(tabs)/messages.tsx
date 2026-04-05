@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -7,17 +7,20 @@ import {
   Image,
   InteractionManager,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { useRouter } from 'expo-router';
 import api from '@/lib/api';
 import { useAuthStore, useChatStore } from '@/lib/store';
-import { Menu, Search } from 'lucide-react-native';
+import { Menu, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 
 export default function MessagesScreen() {
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const { user: currentUser } = useAuthStore();
   const { chatsList, setChatsList } = useChatStore();
   const router = useRouter();
@@ -43,6 +46,16 @@ export default function MessagesScreen() {
       setLoading(false);
     }
   };
+
+  const filteredChats = useMemo(() => {
+    if (!searchQuery.trim()) return chatsList;
+    const query = searchQuery.toLowerCase();
+    return chatsList.filter((chat: any) => {
+      const username = chat.user.username.toLowerCase();
+      const lastMsg = chat.lastMessage?.content?.toLowerCase() || '';
+      return username.includes(query) || lastMsg.includes(query);
+    });
+  }, [chatsList, searchQuery]);
 
   const formatTimeAgo = (dateString?: string) => {
     if (!dateString) return '';
@@ -114,7 +127,6 @@ export default function MessagesScreen() {
               numberOfLines={1}>
               {lastMessage}
             </Text>
-            {/* {isUnread && <View className="h-2 w-2 rounded-full bg-primary" />} */}
           </View>
         </View>
       </TouchableOpacity>
@@ -133,80 +145,97 @@ export default function MessagesScreen() {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 py-4">
-        <TouchableOpacity activeOpacity={0.7} className="w-10">
-          <Menu size={22} color={isDark ? '#fff' : '#000'} strokeWidth={1.5} />
-        </TouchableOpacity>
+        {!isSearching ? (
+          <>
+            <TouchableOpacity activeOpacity={0.7} className="w-10">
+              <Menu size={22} color={isDark ? '#fff' : '#000'} strokeWidth={1.5} />
+            </TouchableOpacity>
 
-        <Text className="font-newsreader text-3xl font-bold italic text-foreground">Nox</Text>
+            <Text className="font-newsreader text-3xl font-bold italic text-foreground">Nox</Text>
 
-        <TouchableOpacity activeOpacity={0.7} className="w-10 items-end">
-          <Search size={22} color={isDark ? '#fff' : '#000'} strokeWidth={1.5} />
-        </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setIsSearching(true)}
+              activeOpacity={0.7}
+              className="w-10 items-end">
+              <Search size={22} color={isDark ? '#fff' : '#000'} strokeWidth={1.5} />
+            </TouchableOpacity>
+          </>
+        ) : (
+          <View className="flex-1 flex-row items-center justify-center">
+            <TouchableOpacity
+              onPress={() => {
+                setIsSearching(false);
+                setSearchQuery('');
+              }}
+              className="mr-4">
+              <X size={20} color={isDark ? '#fff' : '#000'} strokeWidth={2} />
+            </TouchableOpacity>
+            <TextInput
+              autoFocus
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search Conversations..."
+              placeholderTextColor={isDark ? '#666' : '#aaa'}
+              className="flex-1 font-newsreader text-xl font-bold italic text-foreground"
+              // style={{ paddingBottom: 4 }}
+            />
+          </View>
+        )}
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Recent Thoughts */}
-        <View className="mt-8">
-          <Text className="mb-6 px-6 font-jakarta text-[10px] font-bold uppercase tracking-[3px] text-foreground opacity-80">
-            Recent thoughts
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 24 }}>
-            {/* "You" Entry */}
-            <TouchableOpacity activeOpacity={0.7} className="mr-6 items-center">
-              <View className="relative h-16 w-16 items-center justify-center rounded-full border border-dashed border-muted-foreground/30 bg-secondary">
-                <Text className="font-jakarta text-2xl text-muted-foreground opacity-40">+</Text>
-                <View className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-primary" />
-              </View>
-              <Text className="mt-2 font-jakarta text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                You
-              </Text>
-            </TouchableOpacity>
+        {!isSearching && (
+          <View className="mt-8">
+            <Text className="mb-6 px-6 font-jakarta text-[10px] font-bold uppercase tracking-[3px] text-foreground opacity-80">
+              Recent thoughts
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 24 }}>
+              {/* "You" Entry */}
+              <TouchableOpacity activeOpacity={0.7} className="mr-6 items-center">
+                <View className="relative h-16 w-16 items-center justify-center rounded-full border border-dashed border-muted-foreground/30 bg-secondary">
+                  <Text className="font-jakarta text-2xl text-muted-foreground opacity-40">+</Text>
+                  <View className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-primary" />
+                </View>
+                <Text className="mt-2 font-jakarta text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                  You
+                </Text>
+              </TouchableOpacity>
 
-            {chatsList.slice(0, 5).map(renderRecentThought)}
-          </ScrollView>
-        </View>
+              {chatsList.slice(0, 5).map(renderRecentThought)}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Conversations List */}
-        <View className="mt-12 px-6">
+        <View className="mt-6 px-6">
           <View className="mb-8 flex-row items-baseline justify-between">
             <Text className="font-newsreader text-4xl font-bold italic text-foreground">
-              Conversations
+              {isSearching ? 'Conversations' : 'Conversations'}
             </Text>
-            {/* <Text className="font-jakarta text-[10px] font-bold uppercase text-muted-foreground opacity-40">
-              {chatsList.length} Total
-            </Text> */}
+            {/* {isSearching && (
+              <Text className="font-jakarta text-[10px] font-bold uppercase text-muted-foreground opacity-40">
+                {filteredChats.length} Found
+              </Text>
+            )} */}
           </View>
 
-          {chatsList.length === 0 ? (
+          {filteredChats.length === 0 ? (
             <View className="items-center justify-center py-20">
               <Text className="font-jakarta text-sm italic text-muted-foreground opacity-60">
-                No active conversations...
+                {isSearching ? 'No thoughts found...' : 'No active conversations...'}
               </Text>
             </View>
           ) : (
-            chatsList.map((item, index) => renderConversation({ item, index }))
+            filteredChats.map((item, index) => renderConversation({ item, index }))
           )}
         </View>
       </ScrollView>
-
-      {/* Persistent Bottom Nav Visual matching Stitch */}
-      {/* <View 
-        className="absolute bottom-10 self-center bg-secondary rounded-full flex-row p-2 shadow-xl border border-border/10"
-        style={{ paddingHorizontal: 8 }}>
-        <TouchableOpacity 
-          className="px-10 py-4 rounded-full bg-primary">
-          <View className="h-5 w-5 bg-primary-foreground rounded-sm" />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          className="px-10 py-4 rounded-full">
-          <View className="h-5 w-5 bg-muted-foreground opacity-40 rounded-full" />
-        </TouchableOpacity>
-      </View> */}
     </View>
   );
 }

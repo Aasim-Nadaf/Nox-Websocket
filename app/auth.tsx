@@ -112,7 +112,7 @@ export default function AuthScreen() {
               className="h-10 w-10 items-center justify-center rounded-full bg-secondary">
               <ArrowLeft size={20} color={isDark ? '#fff' : '#000'} />
             </TouchableOpacity>
-            <Text className="font-jakarta text-sm uppercase tracking-widest opacity-40">Nox</Text>
+            <Text className="font-jakarta text-sm uppercase tracking-widest opacity-100">Nox</Text>
             <View className="w-10" />
           </View>
 
@@ -174,13 +174,13 @@ export default function AuthScreen() {
                 </TouchableOpacity>
               </View>
 
-              {isLogin && (
+              {/* {isLogin && (
                 <TouchableOpacity className="mt-2 self-end pr-2">
                   <Text className="font-jakarta text-sm font-medium text-muted-foreground underline">
                     Forgot password?
                   </Text>
                 </TouchableOpacity>
-              )}
+              )} */}
             </View>
 
             {/* Main Action Button */}
@@ -188,7 +188,7 @@ export default function AuthScreen() {
               onPress={handleAuth}
               disabled={loading}
               activeOpacity={0.8}
-              className="mt-10 h-[72px] items-center justify-center rounded-[32px] bg-primary shadow-sm">
+              className="mt-10 h-[64px] items-center justify-center rounded-[32px] bg-primary shadow-sm">
               {loading ? (
                 <ActivityIndicator color={isDark ? '#000' : '#fff'} />
               ) : (
@@ -200,11 +200,11 @@ export default function AuthScreen() {
 
             {/* Divider */}
             <View className="my-10 flex-row items-center">
-              <View className="h-[1px] flex-1 bg-border opacity-50" />
+              <View className="h-[1px] flex-1 bg-border opacity-100" />
               <Text className="mx-4 font-jakarta text-xs uppercase tracking-widest text-muted-foreground">
                 or
               </Text>
-              <View className="h-[1px] flex-1 bg-border opacity-50" />
+              <View className="h-[1px] flex-1 bg-border opacity-100" />
             </View>
 
             {/* Social Logins */}
@@ -232,8 +232,8 @@ export default function AuthScreen() {
             <View className="mb-20 mt-12">
               <Text className="text-center font-jakarta text-xs leading-relaxed text-muted-foreground">
                 By signing {isLogin ? 'in' : 'up'}, you agree to our{' '}
-                <Text className="text-foreground underline">Terms of Service</Text> and{' '}
-                <Text className="text-foreground underline">Privacy Policy</Text>.
+                <Text className="text-sm text-foreground underline">Terms of Service</Text> and{' '}
+                <Text className="text-sm text-foreground underline">Privacy Policy</Text>.
               </Text>
             </View>
           </View>
