@@ -39,7 +39,7 @@ export default function ChatScreen() {
   const border = isDark ? '#2a2a2a' : '#e2ddd7';
   const inputBg = isDark ? '#1c1c1c' : '#f4f1ec';
   const textPrimary = isDark ? '#f5f2ed' : '#1a1a1a';
-  const textMuted = isDark ? '#4a4a4a' : '#b0aba3';
+  const textMuted = isDark ? '#b0aba3' : '#b0aba3';
   const textSec = isDark ? '#8a8a8a' : '#6b6b6b';
 
   useEffect(() => {
@@ -83,6 +83,16 @@ export default function ChatScreen() {
       minute: '2-digit',
     });
 
+    const bubbleBg = isDark ? (isMine ? '#ffffff' : '#000000') : isMine ? '#1a1a1a' : surface;
+
+    const bubbleTextColor = isDark
+      ? isMine
+        ? '#000000'
+        : '#ffffff'
+      : isMine
+        ? '#f5f2ed'
+        : textPrimary;
+
     return (
       <View
         style={{
@@ -93,12 +103,12 @@ export default function ChatScreen() {
         <View
           style={{
             maxWidth: '75%',
-            backgroundColor: isMine ? '#1a1a1a' : surface,
+            backgroundColor: bubbleBg,
             borderRadius: 18,
             borderBottomRightRadius: isMine ? 4 : 18,
             borderBottomLeftRadius: isMine ? 18 : 4,
             borderWidth: isMine ? 0 : 1,
-            borderColor: border,
+            borderColor: isDark ? '#2a2a2a' : border,
             paddingHorizontal: 14,
             paddingVertical: 10,
           }}>
@@ -106,7 +116,7 @@ export default function ChatScreen() {
             style={{
               fontSize: 15,
               lineHeight: 22,
-              color: isMine ? '#f5f2ed' : textPrimary,
+              color: bubbleTextColor,
               fontWeight: '400',
             }}>
             {item.content}
@@ -133,11 +143,11 @@ export default function ChatScreen() {
     <View style={{ alignItems: 'flex-start', marginBottom: 20 }}>
       <View
         style={{
-          backgroundColor: surface,
+          backgroundColor: isDark ? '#000000' : surface,
           borderRadius: 18,
           borderBottomLeftRadius: 4,
           borderWidth: 1,
-          borderColor: border,
+          borderColor: isDark ? '#2a2a2a' : border,
           paddingHorizontal: 16,
           paddingVertical: 12,
           flexDirection: 'row',

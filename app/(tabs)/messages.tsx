@@ -149,7 +149,7 @@ export default function MessagesScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Recent Thoughts */}
         <View className="mt-8">
-          <Text className="mb-6 px-6 font-jakarta text-[10px] font-bold uppercase tracking-[2px] text-foreground opacity-60">
+          <Text className="mb-6 px-6 font-jakarta text-[10px] font-bold uppercase tracking-[3px] text-foreground opacity-80">
             Recent thoughts
           </Text>
           <ScrollView
