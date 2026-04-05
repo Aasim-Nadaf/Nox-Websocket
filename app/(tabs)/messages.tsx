@@ -1,25 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, TouchableOpacity, ActivityIndicator, Image, InteractionManager } from 'react-native';
+import {
+  View,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  Image,
+  InteractionManager,
+  ScrollView,
+} from 'react-native';
 import { Text } from '@/components/ui/text';
-import { Input } from '@/components/ui/input';
 import { useRouter } from 'expo-router';
 import api from '@/lib/api';
 import { useAuthStore, useChatStore } from '@/lib/store';
-import { User, Bell, Search, Plus } from 'lucide-react-native';
+import { Menu, Search } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-interface UserModel {
-  id: string;
-  username: string;
-}
+import { useColorScheme } from 'nativewind';
 
 export default function MessagesScreen() {
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   const { user: currentUser } = useAuthStore();
   const { chatsList, setChatsList } = useChatStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   useEffect(() => {
     if (currentUser) {
@@ -40,72 +44,78 @@ export default function MessagesScreen() {
     }
   };
 
-  const filteredChats = chatsList.filter((chat) =>
-    chat.user.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const formatTime = (dateString?: string) => {
+  const formatTimeAgo = (dateString?: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     const now = new Date();
-    const isToday =
-      date.getDate() === now.getDate() &&
-      date.getMonth() === now.getMonth() &&
-      date.getFullYear() === now.getFullYear();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
 
-    if (isToday) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
+    if (diffInMinutes < 1) return 'now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
-  const renderItem = ({ item, index }: { item: any; index: number }) => {
-    // Generate some mock variations for online/unread based on index for design context
-    const isOnline = index % 3 === 0;
-    const unreadCount = 0; // Keeping 0 to be realistic since we don't have read receipts yet
-    const timeText = formatTime(item.lastMessage?.createdAt);
-    const lastMessage = item.lastMessage ? item.lastMessage.content : 'Tap to chat...';
+  const renderRecentThought = (item: any) => (
+    <TouchableOpacity
+      key={item.user.id}
+      activeOpacity={0.7}
+      onPress={() => router.push(`/chat/${item.user.id}?username=${item.user.username}`)}
+      className="mr-6 items-center">
+      <View className="relative h-16 w-16 items-center justify-center rounded-full bg-secondary">
+        <Image
+          source={{ uri: `https://i.pravatar.cc/150?u=${item.user.username}` }}
+          className="h-full w-full rounded-full opacity-80 grayscale"
+          resizeMode="cover"
+        />
+      </View>
+      <Text className="mt-2 font-jakarta text-[10px] font-medium uppercase tracking-widest text-foreground">
+        {item.user.username.split(' ')[0]}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const renderConversation = ({ item, index }: { item: any; index: number }) => {
+    const isUnread = index === 1; // Visual indicator for design purposes
+    const timeText = formatTimeAgo(item.lastMessage?.createdAt);
+    const lastMessage = item.lastMessage ? item.lastMessage.content : 'No message yet...';
 
     return (
       <TouchableOpacity
+        key={item.user.id}
         activeOpacity={0.7}
         onPress={() => router.push(`/chat/${item.user.id}?username=${item.user.username}`)}
-        className="mb-6 flex-row items-center pl-1 pr-4">
-        {/* Avatar with Online Badge */}
-        <View className="relative mr-4 h-14 w-14 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30">
+        className="mb-8 flex-row items-center border-b border-border/20 pb-2">
+        {/* Avatar */}
+        <View className="h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-secondary">
           <Image
             source={{ uri: `https://i.pravatar.cc/150?u=${item.user.username}` }}
-            className="h-full w-full rounded-full"
+            className="h-full w-full grayscale"
             resizeMode="cover"
           />
-          {isOnline && (
-            <View className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white bg-green-500 dark:border-zinc-950" />
-          )}
         </View>
 
-        {/* Name and Last Message */}
-        <View className="flex-1">
-          <Text className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-            {item.user.username}
-          </Text>
-          <Text className="mt-1 text-sm text-zinc-500 dark:text-zinc-400" numberOfLines={1}>
-            {lastMessage}
-          </Text>
-        </View>
-
-        {/* Time and Unread Badge */}
-        <View className="items-end pl-2">
-          <Text className="text-xs text-zinc-400 dark:text-zinc-500">{timeText}</Text>
-          {unreadCount > 0 ? (
-            <View className="mt-1 h-5 min-w-[20px] items-center justify-center rounded-full bg-black px-1 dark:bg-white">
-              <Text className="text-[10px] font-bold text-white dark:text-black">
-                {unreadCount}
-              </Text>
-            </View>
-          ) : (
-            <View className="mt-1 h-5" />
-          )}
+        {/* Content */}
+        <View className="ml-5 flex-1">
+          <View className="mb-1 flex-row items-center justify-between">
+            <Text className="font-jakarta text-lg font-bold text-foreground">
+              {item.user.username}
+            </Text>
+            <Text className="font-jakarta text-[10px] font-medium uppercase text-foreground opacity-60">
+              {timeText}
+            </Text>
+          </View>
+          <View className="flex-row items-center justify-between">
+            <Text
+              className={`flex-1 pr-4 font-jakarta text-sm ${isUnread ? 'font-bold text-muted-foreground' : 'text-muted-foreground opacity-80'}`}
+              numberOfLines={1}>
+              {lastMessage}
+            </Text>
+            {/* {isUnread && <View className="h-2 w-2 rounded-full bg-primary" />} */}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -113,61 +123,90 @@ export default function MessagesScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white dark:bg-zinc-950">
-        <ActivityIndicator size="large" color="#4f46e5" />
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator size="small" color={isDark ? '#fff' : '#000'} />
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-white pt-4 dark:bg-zinc-950" style={{ paddingTop: insets.top + 16 }}>
+    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
-      <View className="mb-6 flex-row items-center justify-between px-6">
-        <Text className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
-          Messages
-        </Text>
-        <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-100">
-          <Bell size={20} color="#09090b" className="dark:color-white" />
+      <View className="flex-row items-center justify-between px-6 py-4">
+        <TouchableOpacity activeOpacity={0.7} className="w-10">
+          <Menu size={22} color={isDark ? '#fff' : '#000'} strokeWidth={1.5} />
+        </TouchableOpacity>
+
+        <Text className="font-newsreader text-3xl font-bold italic text-foreground">Nox</Text>
+
+        <TouchableOpacity activeOpacity={0.7} className="w-10 items-end">
+          <Search size={22} color={isDark ? '#fff' : '#000'} strokeWidth={1.5} />
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
-      <View className="mb-8 px-6">
-        <View className="h-12 flex-row items-center rounded-full border border-zinc-100 bg-zinc-50 px-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <Search size={20} color="#a1a1aa" />
-          <Input
-            placeholder="Search chats"
-            placeholderTextColor="#a1a1aa"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            className="ml-3 flex-1 border-0 bg-transparent px-0 text-base text-zinc-900 shadow-none dark:bg-transparent dark:text-white"
-          />
-        </View>
-      </View>
-
-      {/* List */}
-      <FlatList
-        data={filteredChats}
-        keyExtractor={(item) => item.user.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
+      <ScrollView
         showsVerticalScrollIndicator={false}
-        initialNumToRender={10}
-        maxToRenderPerBatch={8}
-        windowSize={5}
-        removeClippedSubviews={true}
-        ListEmptyComponent={
-          <View className="flex-1 items-center justify-center pt-24">
-            <Text className="text-lg text-zinc-500 dark:text-zinc-400">No chats found.</Text>
-          </View>
-        }
-      />
+        contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* Recent Thoughts */}
+        <View className="mt-8">
+          <Text className="mb-6 px-6 font-jakarta text-[10px] font-bold uppercase tracking-[2px] text-foreground opacity-60">
+            Recent thoughts
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 24 }}>
+            {/* "You" Entry */}
+            <TouchableOpacity activeOpacity={0.7} className="mr-6 items-center">
+              <View className="relative h-16 w-16 items-center justify-center rounded-full border border-dashed border-muted-foreground/30 bg-secondary">
+                <Text className="font-jakarta text-2xl text-muted-foreground opacity-40">+</Text>
+                <View className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-primary" />
+              </View>
+              <Text className="mt-2 font-jakarta text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                You
+              </Text>
+            </TouchableOpacity>
 
-      {/* <TouchableOpacity
-        className="absolute bottom-[110px] right-6 h-14 w-14 items-center justify-center rounded-full bg-black shadow-lg shadow-black/20 dark:bg-white"
-        activeOpacity={0.8}>
-        <Plus size={24} color="white" className="dark:color-black" />
-      </TouchableOpacity> */}
+            {chatsList.slice(0, 5).map(renderRecentThought)}
+          </ScrollView>
+        </View>
+
+        {/* Conversations List */}
+        <View className="mt-12 px-6">
+          <View className="mb-8 flex-row items-baseline justify-between">
+            <Text className="font-newsreader text-4xl font-bold italic text-foreground">
+              Conversations
+            </Text>
+            {/* <Text className="font-jakarta text-[10px] font-bold uppercase text-muted-foreground opacity-40">
+              {chatsList.length} Total
+            </Text> */}
+          </View>
+
+          {chatsList.length === 0 ? (
+            <View className="items-center justify-center py-20">
+              <Text className="font-jakarta text-sm italic text-muted-foreground opacity-60">
+                No active conversations...
+              </Text>
+            </View>
+          ) : (
+            chatsList.map((item, index) => renderConversation({ item, index }))
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Persistent Bottom Nav Visual matching Stitch */}
+      {/* <View 
+        className="absolute bottom-10 self-center bg-secondary rounded-full flex-row p-2 shadow-xl border border-border/10"
+        style={{ paddingHorizontal: 8 }}>
+        <TouchableOpacity 
+          className="px-10 py-4 rounded-full bg-primary">
+          <View className="h-5 w-5 bg-primary-foreground rounded-sm" />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          className="px-10 py-4 rounded-full">
+          <View className="h-5 w-5 bg-muted-foreground opacity-40 rounded-full" />
+        </TouchableOpacity>
+      </View> */}
     </View>
   );
 }

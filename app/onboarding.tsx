@@ -44,14 +44,14 @@ export default function OnboardingScreen() {
     } else {
       setHasShownSplash(true);
       await setHasSeenOnboarding(true);
-      router.replace('/auth');
+      router.replace('/');
     }
   };
 
   const handleSkip = async () => {
     setHasShownSplash(true);
     await setHasSeenOnboarding(true);
-    router.replace('/auth');
+    router.replace('/');
   };
 
   return (
@@ -118,7 +118,7 @@ export default function OnboardingScreen() {
             onPress={handleNext}
             activeOpacity={0.9}
             className="h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg">
-            <ArrowRight color="black" size={24} />
+            <ArrowRight color="white" size={24} />
           </TouchableOpacity>
         </View>
       </View>
