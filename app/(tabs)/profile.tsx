@@ -118,9 +118,8 @@ export default function ProfileScreen() {
             Account
           </Text>
 
-          <MenuItem icon={UserIcon} label="Personal Information" />
-          <MenuItem icon={Bell} label="Notifications" />
-          <MenuItem icon={Shield} label="Privacy & Security" />
+          <MenuItem icon={UserIcon} label="Personal Information" onPress={() => router.push('/personal-information')} />
+          <MenuItem icon={Shield} label="Privacy & Security" onPress={() => router.push('/privacy-security')} />
 
           {/* Preferences Section */}
           <Text className="mb-10 mt-6 font-jakarta text-[10px] font-bold uppercase tracking-[3px] text-foreground opacity-80">
@@ -140,16 +139,25 @@ export default function ProfileScreen() {
             <DialogTrigger asChild>
               <MenuItem icon={LogOut} label="Logout" isDestructive />
             </DialogTrigger>
-            <DialogContent className="w-[340px] rounded-[32px] border border-border/20 bg-background p-6 shadow-2xl">
-              <DialogHeader className="mt-2 items-center gap-1">
-                <DialogTitle className="font-newsreader text-2xl font-bold italic tracking-tight text-foreground">
+            <DialogContent className="w-[320px] overflow-hidden rounded-3xl border border-border/10 bg-background p-0 shadow-2xl">
+              <View className="items-center p-6 pt-8">
+                <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
+                  <LogOut size={28} color="#ef4444" strokeWidth={2} />
+                </View>
+                <DialogTitle className="mb-2 font-newsreader text-2xl font-bold text-foreground">
                   Sign Out
                 </DialogTitle>
-                <DialogDescription className="mt-2 px-2 text-center font-jakarta text-[15px] leading-relaxed text-muted-foreground">
-                  Are you sure you want to sign out of your account?
+                <DialogDescription className="px-2 text-center font-jakarta text-[15px] leading-relaxed text-muted-foreground">
+                  Are you sure you want to log out? You'll need to enter your credentials again to access your chats.
                 </DialogDescription>
-              </DialogHeader>
-              <DialogFooter className="mt-10 flex-col gap-3">
+              </View>
+
+              <View className="flex-row border-t border-border/10">
+                <DialogClose asChild>
+                  <TouchableOpacity className="flex-1 items-center justify-center border-r border-border/10 py-5 active:bg-secondary/50">
+                    <Text className="font-jakarta text-[17px] font-medium text-foreground">Cancel</Text>
+                  </TouchableOpacity>
+                </DialogClose>
                 <DialogClose asChild>
                   <TouchableOpacity
                     onPress={() => {
@@ -157,21 +165,14 @@ export default function ProfileScreen() {
                       Toast.show({
                         type: 'success',
                         text1: 'Signed Out',
-                        text2: 'Session ended successfully.',
+                        text2: 'See you next time.',
                       });
                     }}
-                    className="h-16 w-full items-center justify-center rounded-full bg-red-500 shadow-sm active:bg-red-600">
-                    <Text className="font-jakarta text-[17px] font-bold text-white">Log out</Text>
+                    className="flex-1 items-center justify-center active:bg-red-500/10">
+                    <Text className="font-jakarta text-[17px] font-bold text-red-500">Log out</Text>
                   </TouchableOpacity>
                 </DialogClose>
-                <DialogClose asChild>
-                  <TouchableOpacity className="h-16 w-full items-center justify-center rounded-full bg-secondary active:opacity-80">
-                    <Text className="font-jakarta text-[17px] font-bold text-foreground">
-                      Cancel
-                    </Text>
-                  </TouchableOpacity>
-                </DialogClose>
-              </DialogFooter>
+              </View>
             </DialogContent>
           </Dialog>
         </View>

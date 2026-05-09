@@ -1,4 +1,4 @@
-import { MessageSquare, User } from 'lucide-react-native';
+import { MessageSquare, User, Users } from 'lucide-react-native';
 import { TouchableOpacity, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ export function CustomTabBar({ state, navigation }: any) {
 
   const icons: any = {
     messages: MessageSquare,
+    groups: Users,
     profile: User,
   };
 
@@ -44,7 +45,7 @@ export function CustomTabBar({ state, navigation }: any) {
               key={route.key}
               onPress={onPress}
               activeOpacity={0.75}
-              className="items-center justify-center rounded-[32px] px-9 py-[14px]"
+              className="items-center justify-center rounded-[32px] px-6 py-[14px]"
               style={isFocused ? { backgroundColor: activeBg } : undefined}>
               <Icon
                 size={22}

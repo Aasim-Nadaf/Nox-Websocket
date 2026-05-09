@@ -21,8 +21,8 @@ class WebSocketManager {
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'new_message' && this.onMessageHandler) {
-          this.onMessageHandler(data.message);
+        if (this.onMessageHandler) {
+          this.onMessageHandler(data);
         }
       } catch (e) {
         console.error('WebSocket parse error', e);
@@ -59,6 +59,19 @@ class WebSocketManager {
     }
   }
 
+  sendGroupMessage(groupId: string, content: string) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && this.userId) {
+      this.ws.send(
+        JSON.stringify({
+          type: 'group_message',
+          senderId: this.userId,
+          groupId,
+          content,
+        })
+      );
+    }
+  }
+
   sendTypingStatus(receiverId: string, isTyping: boolean) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN && this.userId) {
       this.ws.send(
@@ -66,6 +79,19 @@ class WebSocketManager {
           type: isTyping ? 'typing' : 'stop_typing',
           senderId: this.userId,
           receiverId,
+        })
+      );
+    }
+  }
+
+  sendMessageRead(messageIds: string[], readerId: string, senderId: string) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && this.userId) {
+      this.ws.send(
+        JSON.stringify({
+          type: 'message_read',
+          messageIds,
+          readerId,
+          senderId,
         })
       );
     }

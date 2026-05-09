@@ -18,13 +18,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 
 export default function ChatScreen() {
-  const { id: otherUserId, username } = useLocalSearchParams<{ id: string; username: string }>();
+  const { id: otherUserId, username, name, isGroup } = useLocalSearchParams<{ id: string; username?: string; name?: string; isGroup?: string }>();
+  const chatName = isGroup ? name : username;
   const [content, setContent] = useState('');
   const { user: currentUser } = useAuthStore();
   const messages = useChatStore((state) => state.messages);
   const setMessages = useChatStore((state) => state.setMessages);
   const typingUsers = useChatStore((state) => state.typingUsers);
   const isTyping = otherUserId ? typingUsers[otherUserId as string] : false;
+  const chatsList = useChatStore((state) => state.chatsList);
+  const chatPartner = chatsList.find(c => c.type === 'direct' && c.user?.id === otherUserId)?.user;
 
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
@@ -49,13 +52,30 @@ export default function ChatScreen() {
   const fetchHistory = async () => {
     if (!currentUser || !otherUserId) return;
     try {
-      const { data } = await api.get(`/messages/${currentUser.id}/${otherUserId}`);
+      const endpoint = isGroup ? `/messages/group/${otherUserId}` : `/messages/${currentUser.id}/${otherUserId}`;
+      const { data } = await api.get(endpoint);
       setMessages(data);
       setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
     } catch (e) {
       console.error(e);
     }
   };
+
+  useEffect(() => {
+    // Send read receipts for unread messages from this user
+    if (currentUser && otherUserId && messages.length > 0) {
+      const unreadMessages = messages.filter(m => m.receiverId === currentUser.id && m.status !== 'READ');
+      if (unreadMessages.length > 0) {
+        wsManager.sendMessageRead(unreadMessages.map(m => m.id), currentUser.id, otherUserId as string);
+        
+        // Optimistically update local store
+        const updatedMessages = messages.map(m => 
+          unreadMessages.some(um => um.id === m.id) ? { ...m, status: 'READ' } : m
+        );
+        setMessages(updatedMessages);
+      }
+    }
+  }, [messages.length, currentUser, otherUserId]);
 
   const handleTextChange = (text: string) => {
     setContent(text);
@@ -69,8 +89,14 @@ export default function ChatScreen() {
 
   const handleSend = () => {
     if (!content.trim() || !currentUser || !otherUserId) return;
-    wsManager.sendMessage(otherUserId as string, content.trim());
-    wsManager.sendTypingStatus(otherUserId as string, false);
+    
+    if (isGroup) {
+      wsManager.sendGroupMessage(otherUserId as string, content.trim());
+    } else {
+      wsManager.sendMessage(otherUserId as string, content.trim());
+      wsManager.sendTypingStatus(otherUserId as string, false);
+    }
+    
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     setContent('');
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -112,6 +138,11 @@ export default function ChatScreen() {
             paddingHorizontal: 14,
             paddingVertical: 10,
           }}>
+          {!isMine && isGroup && item.sender?.username && (
+            <Text style={{ fontSize: 10, color: textSec, marginBottom: 2, fontWeight: '600' }}>
+              {item.sender.username}
+            </Text>
+          )}
           <Text
             style={{
               fontSize: 15,
@@ -132,7 +163,11 @@ export default function ChatScreen() {
             paddingHorizontal: 4,
           }}>
           <Text style={{ fontSize: 11, color: textMuted }}>{time}</Text>
-          {isMine && <CheckCheck size={13} color={textMuted} style={{ marginLeft: 4 }} />}
+          {isMine && (
+            <Text style={{ marginLeft: 4, fontSize: 11, color: item.status === 'READ' ? '#3b82f6' : textMuted }}>
+              {item.status === 'READ' ? '✓✓' : '✓'}
+            </Text>
+          )}
         </View>
       </View>
     );
@@ -203,7 +238,7 @@ export default function ChatScreen() {
               backgroundColor: inputBg,
             }}>
             <Image
-              source={{ uri: `https://i.pravatar.cc/150?u=${username}` }}
+              source={{ uri: isGroup ? `https://ui-avatars.com/api/?name=${chatName}&background=1a1a1a&color=fff` : `https://i.pravatar.cc/150?u=${chatName}` }}
               style={{ width: '100%', height: '100%' }}
               resizeMode="cover"
             />
@@ -218,15 +253,15 @@ export default function ChatScreen() {
                 color: textPrimary,
                 letterSpacing: -0.2,
               }}>
-              {username || 'User'}
+              {chatName || 'Chat'}
             </Text>
             <Text
               style={{
                 fontSize: 12,
-                color: isTyping ? textSec : textMuted,
+                color: isGroup ? textMuted : isTyping || chatPartner?.isOnline ? (isDark ? '#4ade80' : '#16a34a') : textMuted,
                 fontWeight: isTyping ? '500' : '400',
               }}>
-              {isTyping ? 'typing...' : 'online'}
+              {isGroup ? 'Group Chat' : isTyping ? 'typing...' : chatPartner?.isOnline ? 'online' : chatPartner?.lastSeen ? `last seen ${new Date(chatPartner.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'offline'}
             </Text>
           </View>
         </View>

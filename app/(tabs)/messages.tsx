@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -16,6 +16,7 @@ import { useAuthStore, useChatStore } from '@/lib/store';
 import { Menu, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function MessagesScreen() {
   const [loading, setLoading] = useState(true);
@@ -28,17 +29,18 @@ export default function MessagesScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  useEffect(() => {
-    if (currentUser) {
-      InteractionManager.runAfterInteractions(() => {
+  useFocusEffect(
+    useCallback(() => {
+      if (currentUser) {
         fetchChats();
-      });
-    }
-  }, [currentUser]);
+      }
+    }, [currentUser])
+  );
 
   const fetchChats = async () => {
+    if (!currentUser?.id) return;
     try {
-      const { data } = await api.get(`/chats/${currentUser?.id}`);
+      const { data } = await api.get(`/chats/${currentUser.id}`);
       setChatsList(data);
     } catch (error) {
       console.error('Failed to fetch chats', error);
@@ -48,12 +50,13 @@ export default function MessagesScreen() {
   };
 
   const filteredChats = useMemo(() => {
-    if (!searchQuery.trim()) return chatsList;
+    const directChats = chatsList.filter((c: any) => c.type === 'direct');
+    if (!searchQuery.trim()) return directChats;
     const query = searchQuery.toLowerCase();
-    return chatsList.filter((chat: any) => {
-      const username = chat.user.username.toLowerCase();
+    return directChats.filter((chat: any) => {
+      const name = chat.user?.username?.toLowerCase() || '';
       const lastMsg = chat.lastMessage?.content?.toLowerCase() || '';
-      return username.includes(query) || lastMsg.includes(query);
+      return name.includes(query) || lastMsg.includes(query);
     });
   }, [chatsList, searchQuery]);
 
@@ -72,40 +75,52 @@ export default function MessagesScreen() {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
-  const renderRecentThought = (item: any) => (
-    <TouchableOpacity
-      key={item.user.id}
-      activeOpacity={0.7}
-      onPress={() => router.push(`/chat/${item.user.id}?username=${item.user.username}`)}
-      className="mr-6 items-center">
-      <View className="relative h-16 w-16 items-center justify-center rounded-full bg-secondary">
-        <Image
-          source={{ uri: `https://i.pravatar.cc/150?u=${item.user.username}` }}
-          className="h-full w-full rounded-full opacity-80 grayscale"
-          resizeMode="cover"
-        />
-      </View>
-      <Text className="mt-2 font-jakarta text-[10px] font-medium uppercase tracking-widest text-foreground">
-        {item.user.username.split(' ')[0]}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderRecentThought = (item: any) => {
+    if (item.type === 'group') return null; // Or show groups in recent thoughts too
+    
+    return (
+      <TouchableOpacity
+        key={item.user?.id || item.group?.id}
+        activeOpacity={0.7}
+        onPress={() => router.push(`/chat/${item.user.id}?username=${item.user.username}`)}
+        className="mr-6 items-center">
+        <View className="relative h-16 w-16 items-center justify-center rounded-full bg-secondary">
+          <Image
+            source={{ uri: `https://i.pravatar.cc/150?u=${item.user.username}` }}
+            className="h-full w-full rounded-full opacity-80 grayscale"
+            resizeMode="cover"
+          />
+          {item.user.isOnline && (
+            <View className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-background bg-green-500" />
+          )}
+        </View>
+        <Text className="mt-2 font-jakarta text-[10px] font-medium uppercase tracking-widest text-foreground">
+          {item.user.username.split(' ')[0]}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   const renderConversation = ({ item, index }: { item: any; index: number }) => {
     const isUnread = index === 1; // Visual indicator for design purposes
     const timeText = formatTimeAgo(item.lastMessage?.createdAt);
     const lastMessage = item.lastMessage ? item.lastMessage.content : 'No message yet...';
+    
+    const id = item.user.id;
+    const name = item.user.username;
+    const isOnline = item.user.isOnline;
+    const avatarUri = `https://i.pravatar.cc/150?u=${name}`;
 
     return (
       <TouchableOpacity
-        key={item.user.id}
+        key={id}
         activeOpacity={0.7}
-        onPress={() => router.push(`/chat/${item.user.id}?username=${item.user.username}`)}
+        onPress={() => router.push(`/chat/${id}?username=${name}`)}
         className="mb-8 flex-row items-center border-b border-border/20 pb-2">
         {/* Avatar */}
         <View className="h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-secondary">
           <Image
-            source={{ uri: `https://i.pravatar.cc/150?u=${item.user.username}` }}
+            source={{ uri: avatarUri }}
             className="h-full w-full grayscale"
             resizeMode="cover"
           />
@@ -114,14 +129,24 @@ export default function MessagesScreen() {
         {/* Content */}
         <View className="ml-5 flex-1">
           <View className="mb-1 flex-row items-center justify-between">
-            <Text className="font-jakarta text-lg font-bold text-foreground">
-              {item.user.username}
-            </Text>
+            <View className="flex-row items-center">
+              <Text className="font-jakarta text-lg font-bold text-foreground">
+                {name}
+              </Text>
+              {isOnline && (
+                <View className="ml-2 h-2 w-2 rounded-full bg-green-500" />
+              )}
+            </View>
             <Text className="font-jakarta text-[10px] font-medium uppercase text-foreground opacity-60">
               {timeText}
             </Text>
           </View>
-          <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center">
+            {item.lastMessage && item.lastMessage.senderId === currentUser?.id && (
+              <Text className={`mr-1 font-jakarta text-xs ${item.lastMessage.status === 'READ' ? 'text-blue-500' : 'text-muted-foreground'}`}>
+                {item.lastMessage.status === 'READ' ? '✓✓' : '✓'}
+              </Text>
+            )}
             <Text
               className={`flex-1 pr-4 font-jakarta text-sm ${isUnread ? 'font-bold text-muted-foreground' : 'text-muted-foreground opacity-80'}`}
               numberOfLines={1}>
@@ -218,11 +243,6 @@ export default function MessagesScreen() {
             <Text className="font-newsreader text-4xl font-bold italic text-foreground">
               {isSearching ? 'Conversations' : 'Conversations'}
             </Text>
-            {/* {isSearching && (
-              <Text className="font-jakarta text-[10px] font-bold uppercase text-muted-foreground opacity-40">
-                {filteredChats.length} Found
-              </Text>
-            )} */}
           </View>
 
           {filteredChats.length === 0 ? (
