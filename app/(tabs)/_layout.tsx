@@ -15,6 +15,7 @@ export default function TabLayout() {
           headerShown: false,
         }}>
         <Tabs.Screen name="messages" />
+        <Tabs.Screen name="groups" />
         <Tabs.Screen name="profile" />
       </Tabs>
     </View>

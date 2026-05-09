@@ -11,18 +11,39 @@ model User {
   id               String    @id @default(auto()) @map("_id") @db.ObjectId
   username         String    @unique
   password         String
+  bio              String?
+  isOnline         Boolean   @default(false)
+  lastSeen         DateTime  @default(now())
   createdAt        DateTime  @default(now())
+
+  groupIds         String[]  @db.ObjectId
+  groups           Group[]   @relation(fields: [groupIds], references: [id])
+
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
+}
+
+model Group {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  createdAt      DateTime  @default(now())
+
+  participantIds String[]  @db.ObjectId
+  participants   User[]    @relation(fields: [participantIds], references: [id])
+
+  messages       Message[]
 }
 
 model Message {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
   content    String
   senderId   String   @db.ObjectId
-  receiverId String   @db.ObjectId
+  receiverId String?  @db.ObjectId
+  groupId    String?  @db.ObjectId
+  status     String   @default("SENT") // SENT, DELIVERED, READ
   createdAt  DateTime @default(now())
 
-  sender   User @relation("SentMessages", fields: [senderId], references: [id])
-  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  sender   User   @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User?  @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  group    Group? @relation(fields: [groupId], references: [id])
 }

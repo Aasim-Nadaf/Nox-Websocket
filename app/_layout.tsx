@@ -64,7 +64,12 @@ export default function RootLayout() {
   useEffect(() => {
     if (isAuthLoading || !fontsLoaded) return;
 
-    const inAuthGroup = segments[0] === '(tabs)' || segments[0] === 'chat';
+    const inAuthGroup =
+      segments[0] === '(tabs)' ||
+      segments[0] === 'chat' ||
+      segments[0] === 'personal-information' ||
+      segments[0] === 'privacy-security' ||
+      segments[0] === 'create-group';
     const isSplashOrOnboarding = segments[0] === 'splash' || segments[0] === 'onboarding';
 
     if (isAuthenticated) {
