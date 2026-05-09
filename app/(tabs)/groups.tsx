@@ -66,8 +66,8 @@ export default function GroupsScreen() {
   const renderGroup = ({ item }: { item: any }) => {
     const timeText = formatTimeAgo(item.lastMessage?.createdAt);
     const lastMessage = item.lastMessage ? item.lastMessage.content : 'No messages yet...';
-    const name = item.group.name;
-    const id = item.group.id;
+    const name = item.group?.name || 'Group';
+    const id = item.group?.id;
     const avatarUri = `https://ui-avatars.com/api/?name=${name}&background=1a1a1a&color=fff&size=150`;
 
     return (
@@ -77,7 +77,11 @@ export default function GroupsScreen() {
         onPress={() => router.push(`/chat/${id}?name=${name}&isGroup=true`)}
         className="mb-8 flex-row items-center border-b border-border/20 pb-2">
         <View className="h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-secondary">
-          <Image source={{ uri: avatarUri }} className="h-full w-full grayscale" resizeMode="cover" />
+          <Image
+            source={{ uri: avatarUri }}
+            className="h-full w-full grayscale"
+            resizeMode="cover"
+          />
         </View>
 
         <View className="ml-5 flex-1">
@@ -86,12 +90,14 @@ export default function GroupsScreen() {
           </View>
           <View className="flex-row items-center justify-between">
             <Text
-              className="font-jakarta text-[13px] font-medium leading-5 opacity-70 flex-1 mr-4"
+              className="mr-4 flex-1 font-jakarta text-[13px] font-medium leading-5 opacity-70"
               numberOfLines={2}>
-              {item.lastMessage?.sender?.username ? `${item.lastMessage.sender.username}: ${lastMessage}` : lastMessage}
+              {item.lastMessage?.sender?.username
+                ? `${item.lastMessage.sender.username}: ${lastMessage}`
+                : lastMessage}
             </Text>
             {timeText ? (
-              <Text className="font-jakarta text-[11px] font-bold uppercase tracking-wider opacity-30 mt-1">
+              <Text className="mt-1 font-jakarta text-[11px] font-bold uppercase tracking-wider opacity-30">
                 {timeText}
               </Text>
             ) : null}
@@ -107,12 +113,12 @@ export default function GroupsScreen() {
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <View className="flex-1">
-        <View className="px-6 pb-2 pt-4 flex-row justify-between items-center">
+        <View className="flex-row items-center justify-between px-6 pb-2 pt-4">
           {isSearching ? (
-            <View className="flex-row items-center flex-1 h-12 rounded-full bg-secondary px-4">
+            <View className="h-12 flex-1 flex-row items-center rounded-full bg-secondary px-4">
               <Search size={18} color={textMuted} />
               <TextInput
-                className="flex-1 ml-3 font-jakarta text-[15px] text-foreground"
+                className="ml-3 flex-1 font-jakarta text-[15px] text-foreground"
                 placeholder="Search groups..."
                 placeholderTextColor={textMuted}
                 value={searchQuery}
@@ -126,38 +132,42 @@ export default function GroupsScreen() {
               )}
             </View>
           ) : (
-            <View className="flex-row items-center justify-end w-full">
-              <TouchableOpacity onPress={() => setIsSearching(true)} className="p-2 -mr-2 opacity-80">
+            <View className="w-full flex-row items-center justify-end">
+              <TouchableOpacity
+                onPress={() => setIsSearching(true)}
+                className="-mr-2 p-2 opacity-80">
                 <Search size={24} color={textPrimary} />
               </TouchableOpacity>
             </View>
           )}
         </View>
 
-        <View className="mt-2 px-6 flex-1">
+        <View className="mt-2 flex-1 px-6">
           <View className="mb-8 flex-row items-baseline justify-between">
             <Text className="font-newsreader text-4xl font-bold italic text-foreground">
               Groups
             </Text>
             {!isSearching && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => router.push('/create-group')}
-                className="bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
+                className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5">
                 <Text className="font-jakarta text-xs font-bold text-primary">+ New</Text>
               </TouchableOpacity>
             )}
           </View>
 
           {filteredGroups.length === 0 ? (
-            <View className="flex-1 items-center justify-center opacity-40 mt-10">
+            <View className="mt-10 flex-1 items-center justify-center opacity-40">
               <Users size={48} color={textPrimary} strokeWidth={1} style={{ marginBottom: 16 }} />
-              <Text className="font-newsreader text-xl text-foreground mb-2">No Groups Yet</Text>
-              <Text className="font-jakarta text-xs text-muted-foreground">Tap + New to start a group</Text>
+              <Text className="mb-2 font-newsreader text-xl text-foreground">No Groups Yet</Text>
+              <Text className="font-jakarta text-xs text-muted-foreground">
+                Tap + New to start a group
+              </Text>
             </View>
           ) : (
             <FlatList
               data={filteredGroups}
-              keyExtractor={(item) => item.group.id}
+              keyExtractor={(item: any) => item.group?.id || Math.random().toString()}
               renderItem={renderGroup}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 120 }}

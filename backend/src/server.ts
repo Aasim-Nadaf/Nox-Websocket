@@ -217,10 +217,14 @@ wss.on('connection', async (ws, req) => {
   clients.set(userId, { ws, userId });
 
   // Set user as online
-  await prisma.user.update({
-    where: { id: userId },
-    data: { isOnline: true },
-  });
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isOnline: true },
+    });
+  } catch (error) {
+    console.error(`Failed to set user ${userId} online:`, error);
+  }
 
   // Broadcast to all clients
   const statusPayload = JSON.stringify({
@@ -338,10 +342,14 @@ wss.on('connection', async (ws, req) => {
   ws.on('close', async () => {
     clients.delete(userId);
     const lastSeen = new Date();
-    await prisma.user.update({
-      where: { id: userId },
-      data: { isOnline: false, lastSeen },
-    });
+    try {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { isOnline: false, lastSeen },
+      });
+    } catch (error) {
+      console.error(`Failed to set user ${userId} offline:`, error);
+    }
 
     const statusPayload = JSON.stringify({
       type: 'status_change',
