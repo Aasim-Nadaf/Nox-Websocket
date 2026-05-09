@@ -96,8 +96,13 @@ app.post('/api/groups', async (req, res) => {
 });
 
 app.get('/api/chats/:userId', async (req, res) => {
+  console.log(`[API] GET /api/chats/${req.params.userId}`);
   try {
     const { userId } = req.params;
+    const isValidId = /^[0-9a-fA-F]{24}$/.test(userId);
+    if (!isValidId) {
+      return res.status(400).json({ error: 'Invalid User ID format' });
+    }
 
     // Fetch all other users
     const otherUsers = await prisma.user.findMany({
@@ -159,13 +164,40 @@ app.get('/api/chats/:userId', async (req, res) => {
 
     res.json(chatsList);
   } catch (error) {
+    console.error('Error in GET /api/chats:', error);
     res.status(500).json({ error: 'Failed to fetch chats' });
   }
 });
 
+app.get('/api/messages/group/:groupId', async (req, res) => {
+  console.log(`[API] GET /api/messages/group/${req.params.groupId}`);
+  try {
+    const { groupId } = req.params;
+    const isValidGroupId = /^[0-9a-fA-F]{24}$/.test(groupId);
+    if (!isValidGroupId) {
+      return res.status(400).json({ error: 'Invalid Group ID format' });
+    }
+    const messages = await prisma.message.findMany({
+      where: { groupId },
+      orderBy: { createdAt: 'asc' },
+      include: { sender: { select: { id: true, username: true } } }
+    });
+    res.json(messages);
+  } catch (error) {
+    console.error('Error in GET /api/messages/group:', error);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
 app.get('/api/messages/:userId/:otherUserId', async (req, res) => {
+  console.log(`[API] GET /api/messages/${req.params.userId}/${req.params.otherUserId}`);
   try {
     const { userId, otherUserId } = req.params;
+    const isValidUserId = /^[0-9a-fA-F]{24}$/.test(userId);
+    const isValidOtherId = /^[0-9a-fA-F]{24}$/.test(otherUserId);
+    if (!isValidUserId || !isValidOtherId) {
+      return res.status(400).json({ error: 'Invalid User ID format' });
+    }
     const messages = await prisma.message.findMany({
       where: {
         groupId: null,
@@ -178,20 +210,7 @@ app.get('/api/messages/:userId/:otherUserId', async (req, res) => {
     });
     res.json(messages);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch messages' });
-  }
-});
-
-app.get('/api/messages/group/:groupId', async (req, res) => {
-  try {
-    const { groupId } = req.params;
-    const messages = await prisma.message.findMany({
-      where: { groupId },
-      orderBy: { createdAt: 'asc' },
-      include: { sender: { select: { id: true, username: true } } }
-    });
-    res.json(messages);
-  } catch (error) {
+    console.error('Error in GET /api/messages:', error);
     res.status(500).json({ error: 'Failed to fetch messages' });
   }
 });

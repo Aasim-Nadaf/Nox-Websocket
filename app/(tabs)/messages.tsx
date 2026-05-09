@@ -38,8 +38,9 @@ export default function MessagesScreen() {
   );
 
   const fetchChats = async () => {
+    if (!currentUser?.id) return;
     try {
-      const { data } = await api.get(`/chats/${currentUser?.id}`);
+      const { data } = await api.get(`/chats/${currentUser.id}`);
       setChatsList(data);
     } catch (error) {
       console.error('Failed to fetch chats', error);
@@ -141,7 +142,7 @@ export default function MessagesScreen() {
             </Text>
           </View>
           <View className="flex-row items-center">
-            {item.lastMessage?.senderId === currentUser?.id && (
+            {item.lastMessage && item.lastMessage.senderId === currentUser?.id && (
               <Text className={`mr-1 font-jakarta text-xs ${item.lastMessage.status === 'READ' ? 'text-blue-500' : 'text-muted-foreground'}`}>
                 {item.lastMessage.status === 'READ' ? '✓✓' : '✓'}
               </Text>

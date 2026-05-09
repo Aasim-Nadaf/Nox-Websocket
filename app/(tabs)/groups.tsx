@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, FlatList } from 'react-native';
+import { View, TextInput, TouchableOpacity, Image, FlatList } from 'react-native';
+import { Text } from '@/components/ui/text';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useAuthStore, useChatStore } from '@/lib/store';
 import api from '@/lib/api';
-import { Search, X, Users } from 'lucide-react-native';
+import { Search, X, Users, Menu } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 
@@ -29,8 +30,9 @@ export default function GroupsScreen() {
   );
 
   const fetchChats = async () => {
+    if (!currentUser?.id) return;
     try {
-      const { data } = await api.get(`/chats/${currentUser?.id}`);
+      const { data } = await api.get(`/chats/${currentUser.id}`);
       setChatsList(data);
     } catch (error) {
       console.error('Failed to fetch chats', error);
@@ -112,40 +114,43 @@ export default function GroupsScreen() {
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      <View className="flex-1">
-        <View className="flex-row items-center justify-between px-6 pb-2 pt-4">
-          {isSearching ? (
-            <View className="h-12 flex-1 flex-row items-center rounded-full bg-secondary px-4">
-              <Search size={18} color={textMuted} />
-              <TextInput
-                className="ml-3 flex-1 font-jakarta text-[15px] text-foreground"
-                placeholder="Search groups..."
-                placeholderTextColor={textMuted}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoFocus
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <X size={18} color={textMuted} />
-                </TouchableOpacity>
-              )}
-            </View>
-          ) : (
-            <View className="w-full flex-row items-center justify-end">
-              <TouchableOpacity
-                onPress={() => setIsSearching(true)}
-                className="-mr-2 p-2 opacity-80">
-                <Search size={24} color={textPrimary} />
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-6 py-4">
+        {!isSearching ? (
+          <>
+            <TouchableOpacity activeOpacity={0.7} className="w-10">
+              <Menu size={22} color={textPrimary} strokeWidth={1.5} />
+            </TouchableOpacity>
 
+            <Text className="font-newsreader text-3xl font-bold italic text-foreground">Group</Text>
+
+            <TouchableOpacity onPress={() => setIsSearching(true)} className="w-10 items-end">
+              <Search size={22} color={textPrimary} strokeWidth={1.5} />
+            </TouchableOpacity>
+          </>
+        ) : (
+          <View className="h-12 flex-1 flex-row items-center rounded-full bg-secondary px-4">
+            <Search size={18} color={textMuted} />
+            <TextInput
+              className="ml-3 flex-1 font-jakarta text-[15px] text-foreground"
+              placeholder="Search groups..."
+              placeholderTextColor={textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus
+            />
+            <TouchableOpacity onPress={() => setIsSearching(false)}>
+              <X size={18} color={textMuted} />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      <View className="flex-1">
         <View className="mt-2 flex-1 px-6">
           <View className="mb-8 flex-row items-baseline justify-between">
-            <Text className="font-newsreader text-4xl font-bold italic text-foreground">
-              Groups
+            <Text className="font-jakarta text-[10px] font-bold uppercase tracking-[3px] text-foreground opacity-80">
+              All groups
             </Text>
             {!isSearching && (
               <TouchableOpacity
