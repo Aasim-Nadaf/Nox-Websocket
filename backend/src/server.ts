@@ -42,7 +42,7 @@ app.put('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { username, password, bio } = req.body;
-    
+
     const updateData: any = {};
 
     if (username) {
@@ -86,7 +86,7 @@ app.post('/api/groups', async (req, res) => {
     }
 
     const group = await prisma.group.create({
-      data: { name, participantIds }
+      data: { name, participantIds },
     });
 
     res.json(group);
@@ -115,7 +115,6 @@ app.get('/api/chats/:userId', async (req, res) => {
         // Find the most recent message between currentUser and this user
         const lastMessage = await prisma.message.findFirst({
           where: {
-            groupId: null,
             OR: [
               { senderId: userId, receiverId: user.id },
               { senderId: user.id, receiverId: userId },
@@ -134,7 +133,7 @@ app.get('/api/chats/:userId', async (req, res) => {
 
     // Fetch user groups
     const userGroups = await prisma.group.findMany({
-      where: { participantIds: { has: userId } }
+      where: { participantIds: { has: userId } },
     });
 
     const groupsList = await Promise.all(
@@ -142,7 +141,7 @@ app.get('/api/chats/:userId', async (req, res) => {
         const lastMessage = await prisma.message.findFirst({
           where: { groupId: group.id },
           orderBy: { createdAt: 'desc' },
-          include: { sender: { select: { username: true } } }
+          include: { sender: { select: { username: true } } },
         });
 
         return {
@@ -180,7 +179,7 @@ app.get('/api/messages/group/:groupId', async (req, res) => {
     const messages = await prisma.message.findMany({
       where: { groupId },
       orderBy: { createdAt: 'asc' },
-      include: { sender: { select: { id: true, username: true } } }
+      include: { sender: { select: { id: true, username: true } } },
     });
     res.json(messages);
   } catch (error) {
@@ -200,13 +199,13 @@ app.get('/api/messages/:userId/:otherUserId', async (req, res) => {
     }
     const messages = await prisma.message.findMany({
       where: {
-        groupId: null,
         OR: [
           { senderId: userId, receiverId: otherUserId },
           { senderId: otherUserId, receiverId: userId },
         ],
       },
       orderBy: { createdAt: 'asc' },
+      include: { sender: { select: { id: true, username: true } } },
     });
     res.json(messages);
   } catch (error) {
@@ -262,6 +261,7 @@ wss.on('connection', async (ws, req) => {
       const parsedData = JSON.parse(data.toString());
       if (parsedData.type === 'message') {
         const { senderId, receiverId, content } = parsedData;
+        console.log(`[WS] Solo message from ${senderId} to ${receiverId}`);
 
         // Save to database
         const savedMessage = await prisma.message.create({
@@ -269,8 +269,9 @@ wss.on('connection', async (ws, req) => {
             senderId,
             receiverId,
             content,
-            status: "SENT"
+            status: 'SENT',
           },
+          include: { sender: { select: { id: true, username: true } } },
         });
 
         const messagePayload = JSON.stringify({
@@ -281,19 +282,21 @@ wss.on('connection', async (ws, req) => {
         // Send to receiver if online
         const receiverClient = clients.get(receiverId);
         if (receiverClient && receiverClient.ws.readyState === WebSocket.OPEN) {
+          console.log(`[WS] Delivering to receiver ${receiverId}`);
           receiverClient.ws.send(messagePayload);
         }
 
         // Send back to sender for confirmation/sync
         const senderClient = clients.get(senderId);
         if (senderClient && senderClient.ws.readyState === WebSocket.OPEN) {
+          console.log(`[WS] Confirming to sender ${senderId}`);
           senderClient.ws.send(messagePayload);
         }
       } else if (parsedData.type === 'group_message') {
         const { senderId, groupId, content } = parsedData;
 
         const group = await prisma.group.findUnique({
-          where: { id: groupId }
+          where: { id: groupId },
         });
         if (!group) return;
 
@@ -302,19 +305,19 @@ wss.on('connection', async (ws, req) => {
             senderId,
             groupId,
             content,
-            status: "SENT"
+            status: 'SENT',
           },
-          include: { sender: { select: { username: true } } }
+          include: { sender: { select: { username: true } } },
         });
 
         const messagePayload = JSON.stringify({
           type: 'new_group_message',
           message: savedMessage,
-          groupId
+          groupId,
         });
 
         // Broadcast to all participants
-        group.participantIds.forEach(pId => {
+        group.participantIds.forEach((pId) => {
           const client = clients.get(pId);
           if (client && client.ws.readyState === WebSocket.OPEN) {
             client.ws.send(messagePayload);
@@ -334,17 +337,17 @@ wss.on('connection', async (ws, req) => {
         }
       } else if (parsedData.type === 'message_read') {
         const { messageIds, readerId, senderId } = parsedData;
-        
+
         if (messageIds && messageIds.length > 0) {
           await prisma.message.updateMany({
             where: { id: { in: messageIds }, receiverId: readerId },
-            data: { status: 'READ' }
+            data: { status: 'READ' },
           });
 
           const statusPayload = JSON.stringify({
             type: 'message_status_update',
             messageIds,
-            status: 'READ'
+            status: 'READ',
           });
 
           const senderClient = clients.get(senderId);

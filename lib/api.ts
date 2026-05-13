@@ -9,7 +9,7 @@ const localhost = debuggerHost?.split(':')[0] || 'localhost';
 // 2. FOR PRODUCTION/APK: Replace the string below with your ngrok or server URL
 const PRODUCTION_URL = 'https://nox-websocket.onrender.com';
 
-export const API_URL = __DEV__ ? `http://${localhost}:5000/api` : `${PRODUCTION_URL}/api`;
+export const API_URL = __DEV__ ? `http://${localhost}:5000/api/` : `${PRODUCTION_URL}/api/`;
 
 export const WS_URL = __DEV__
   ? `ws://${localhost}:5000`

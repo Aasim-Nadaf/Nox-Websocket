@@ -32,7 +32,7 @@ export default function GroupsScreen() {
   const fetchChats = async () => {
     if (!currentUser?.id) return;
     try {
-      const { data } = await api.get(`/chats/${currentUser.id}`);
+      const { data } = await api.get(`chats/${currentUser.id}`);
       setChatsList(data);
     } catch (error) {
       console.error('Failed to fetch chats', error);
@@ -71,6 +71,8 @@ export default function GroupsScreen() {
     const name = item.group?.name || 'Group';
     const id = item.group?.id;
     const avatarUri = `https://ui-avatars.com/api/?name=${name}&background=1a1a1a&color=fff&size=150`;
+
+    if (!id) return null;
 
     return (
       <TouchableOpacity
