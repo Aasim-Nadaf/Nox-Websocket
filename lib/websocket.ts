@@ -4,7 +4,17 @@ class WebSocketManager {
   private ws: WebSocket | null = null;
   private userId: string | null = null;
   private url = WS_URL;
+
+  /**
+   * Global handler — used by the Zustand store to update chatsList / typingUsers.
+   */
   public onMessageHandler: ((message: any) => void) | null = null;
+
+  /**
+   * Chat-screen-specific handler — registered by the active ChatScreen to receive
+   * new_message / new_group_message events for display.
+   */
+  public onChatMessageHandler: ((message: any) => void) | null = null;
 
   connect(userId: string) {
     if (this.ws) {
@@ -15,27 +25,32 @@ class WebSocketManager {
     this.ws = new WebSocket(`${this.url}?userId=${userId}`);
 
     this.ws.onopen = () => {
-      console.log('WebSocket Connected');
+      console.log('[WS] Connected');
     };
 
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        // Dispatch to global store handler
         if (this.onMessageHandler) {
           this.onMessageHandler(data);
         }
+        // Also dispatch to active chat screen handler if registered
+        if (this.onChatMessageHandler) {
+          this.onChatMessageHandler(data);
+        }
       } catch (e) {
-        console.error('WebSocket parse error', e);
+        console.error('[WS] Parse error', e);
       }
     };
 
     this.ws.onerror = (e) => {
-      console.error('WebSocket Error', e);
+      console.error('[WS] Error', e);
     };
 
     this.ws.onclose = () => {
-      console.log('WebSocket Disconnected');
-      // basic reconnect logic
+      console.log('[WS] Disconnected');
+      // Reconnect after 5s
       setTimeout(() => {
         if (this.userId) {
           this.connect(this.userId);
@@ -55,7 +70,7 @@ class WebSocketManager {
         })
       );
     } else {
-      console.error('WebSocket not ready to send');
+      console.error('[WS] Not ready to send');
     }
   }
 
@@ -103,6 +118,10 @@ class WebSocketManager {
       this.ws.close();
       this.ws = null;
     }
+  }
+
+  get currentUserId() {
+    return this.userId;
   }
 }
 

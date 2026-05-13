@@ -10,14 +10,15 @@ interface User {
   lastSeen?: string;
 }
 
-interface Message {
+export interface Message {
   id: string;
   content: string;
   senderId: string;
-  receiverId?: string;
-  groupId?: string;
+  receiverId?: string | null;
+  groupId?: string | null;
   status: string;
   createdAt: string;
+  sender?: { id?: string; username: string } | null;
 }
 
 interface Group {
@@ -25,6 +26,15 @@ interface Group {
   name: string;
   createdAt: string;
 }
+
+interface ChatSummary {
+  type: 'direct' | 'group';
+  user?: User;
+  group?: Group;
+  lastMessage: Message | null;
+}
+
+// ─── Auth Store ──────────────────────────────────────────────────────────────
 
 interface AuthState {
   user: User | null;
@@ -63,13 +73,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     const token = await AsyncStorage.getItem('auth_token');
     const userStr = await AsyncStorage.getItem('auth_user');
     const onboardingStr = await AsyncStorage.getItem('has_seen_onboarding');
-    
-    set({ 
-      hasSeenOnboarding: onboardingStr === 'true',
-    });
+
+    set({ hasSeenOnboarding: onboardingStr === 'true' });
 
     if (token && userStr) {
-      const user = JSON.parse(userStr) as unknown as User;
+      const user = JSON.parse(userStr) as User;
       set({ user, token, isAuthenticated: true, isLoading: false });
       wsManager.connect(user.id);
     } else {
@@ -85,106 +93,99 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
-interface ChatSummary {
-  type: 'direct' | 'group';
-  user?: User;
-  group?: Group;
-  lastMessage: Message | null;
-}
+// ─── Chat Store ───────────────────────────────────────────────────────────────
+// This store manages the SIDEBAR (chatsList) and typing indicators only.
+// Individual chat messages are managed locally inside ChatScreen via
+// wsManager.onChatMessageHandler.
 
 interface ChatState {
-  messages: Message[];
   chatsList: ChatSummary[];
   typingUsers: Record<string, boolean>;
-  setMessages: (messages: Message[]) => void;
   setChatsList: (chatsList: ChatSummary[]) => void;
-  addMessage: (message: Message) => void;
   setTyping: (userId: string, isTyping: boolean) => void;
 }
 
-export const useChatStore = create<ChatState>((set) => {
-  // Register the message handler with wsManager to avoid import cycle
-  wsManager.onMessageHandler = (msg: any) => {
-    if (msg.type === 'status_change') {
-      set((state) => ({
-        chatsList: state.chatsList.map(chat => 
-          chat.type === 'direct' && chat.user?.id === msg.userId 
-            ? { ...chat, user: { ...chat.user!, isOnline: msg.isOnline, lastSeen: msg.lastSeen } }
-            : chat
-        )
-      }));
-    } else if (msg.type === 'message_status_update') {
-      set((state) => ({
-        messages: state.messages.map(m => 
-          msg.messageIds.includes(m.id) ? { ...m, status: msg.status } : m
-        ),
-        chatsList: state.chatsList.map(chat => 
-          chat.lastMessage && msg.messageIds.includes(chat.lastMessage.id)
-            ? { ...chat, lastMessage: { ...chat.lastMessage, status: msg.status } }
-            : chat
-        )
-      }));
-    } else if (msg.type === 'typing') {
-      set((state) => ({
-        typingUsers: { ...state.typingUsers, [msg.senderId]: true },
-      }));
-    } else if (msg.type === 'stop_typing') {
-      set((state) => ({
-        typingUsers: { ...state.typingUsers, [msg.senderId]: false },
-      }));
-    } else {
-      // Treat as new_message or new_group_message
-      const isNewMessage = msg.type === 'new_message' || msg.type === 'new_group_message';
-      if (!isNewMessage) return; // Ignore other unhandled events
-      const newMsg = msg.message;
-      if (!newMsg || !newMsg.id) return;
+export const useChatStore = create<ChatState>((set) => ({
+  chatsList: [],
+  typingUsers: {},
+  setChatsList: (chatsList) => set({ chatsList: Array.isArray(chatsList) ? chatsList : [] }),
+  setTyping: (userId, isTyping) =>
+    set((state) => ({
+      typingUsers: { ...state.typingUsers, [userId]: isTyping },
+    })),
+}));
 
-      set((state) => {
-        if (state.messages.some((m) => m.id === newMsg.id)) return state;
+// ─── Global WS handler (store-level) ─────────────────────────────────────────
+// Handles sidebar updates, typing indicators, and status changes.
+// The ChatScreen registers its OWN handler via wsManager.onChatMessageHandler.
 
-        // Also update the chatsList to reflect the new lastMessage
-        const newChatsList = [...state.chatsList];
-        let chatIndex = -1;
+wsManager.onMessageHandler = (msg: any) => {
+  if (!msg || !msg.type) return;
 
-        if (msg.type === 'new_group_message') {
-          chatIndex = newChatsList.findIndex((chat) => chat.type === 'group' && chat.group?.id === msg.groupId);
-        } else {
-          const otherUserId =
-            newMsg.senderId === useAuthStore.getState().user?.id
-              ? newMsg.receiverId
-              : newMsg.senderId;
-          chatIndex = newChatsList.findIndex((chat) => chat.type === 'direct' && chat.user?.id === otherUserId);
+  if (msg.type === 'status_change') {
+    useChatStore.setState((state) => ({
+      chatsList: state.chatsList.map((chat) =>
+        chat.type === 'direct' && String(chat.user?.id) === String(msg.userId)
+          ? { ...chat, user: { ...chat.user!, isOnline: msg.isOnline, lastSeen: msg.lastSeen } }
+          : chat
+      ),
+    }));
+  } else if (msg.type === 'message_status_update') {
+    useChatStore.setState((state) => ({
+      chatsList: state.chatsList.map((chat) =>
+        chat.lastMessage && msg.messageIds?.includes(chat.lastMessage.id)
+          ? { ...chat, lastMessage: { ...chat.lastMessage, status: msg.status } }
+          : chat
+      ),
+    }));
+  } else if (msg.type === 'typing') {
+    useChatStore.setState((state) => ({
+      typingUsers: { ...state.typingUsers, [msg.senderId]: true },
+    }));
+  } else if (msg.type === 'stop_typing') {
+    useChatStore.setState((state) => ({
+      typingUsers: { ...state.typingUsers, [msg.senderId]: false },
+    }));
+  } else if (msg.type === 'new_message' || msg.type === 'new_group_message') {
+    // Update chatsList so the sidebar shows the latest message + sorts correctly
+    const newMsg: Message = msg.message;
+    if (!newMsg || !newMsg.id) return;
+
+    useChatStore.setState((state) => {
+      const newChatsList = [...state.chatsList];
+      const isGroupMsg = msg.type === 'new_group_message';
+      let chatIndex = -1;
+
+      if (isGroupMsg) {
+        chatIndex = newChatsList.findIndex(
+          (c) => c.type === 'group' && String(c.group?.id) === String(msg.groupId)
+        );
+      } else {
+        const authUser = useAuthStore.getState().user;
+        const sMyId = authUser?.id ? String(authUser.id) : '';
+        const sSndr = String(newMsg.senderId);
+        const sRcvr = newMsg.receiverId ? String(newMsg.receiverId) : '';
+        const otherUserId = sSndr === sMyId ? sRcvr : sSndr;
+
+        if (otherUserId) {
+          chatIndex = newChatsList.findIndex(
+            (c) => c.type === 'direct' && String(c.user?.id) === otherUserId
+          );
         }
+      }
 
-        if (chatIndex >= 0) {
-          // Update existing chat
-          const chat = newChatsList[chatIndex];
-          newChatsList.splice(chatIndex, 1);
-          newChatsList.unshift({ ...chat, lastMessage: newMsg });
-        }
+      if (chatIndex >= 0) {
+        // Existing chat: update message and move to top
+        const [chat] = newChatsList.splice(chatIndex, 1);
+        newChatsList.unshift({ ...chat, lastMessage: newMsg });
+      } else if (!isGroupMsg) {
+        // Fallback for new direct chats: since we don't have the user object here,
+        // we'll just keep the list as is, but in a real app you'd fetch the user info.
+        // However, since backend /chats/:id returns everyone, this shouldn't happen often.
+        console.log('New direct chat message received, but user not found in current list.');
+      }
 
-        return {
-          messages: [...state.messages, newMsg],
-          chatsList: newChatsList,
-        };
-      });
-    }
-  };
-
-  return {
-    messages: [],
-    chatsList: [],
-    typingUsers: {},
-    setMessages: (messages) => set({ messages }),
-    setChatsList: (chatsList) => set({ chatsList }),
-    addMessage: (message) =>
-      set((state) => {
-        if (state.messages.some((m) => m.id === message.id)) return state;
-        return { messages: [...state.messages, message] };
-      }),
-    setTyping: (userId, isTyping) =>
-      set((state) => ({
-        typingUsers: { ...state.typingUsers, [userId]: isTyping },
-      })),
-  };
-});
+      return { chatsList: newChatsList };
+    });
+  }
+};
